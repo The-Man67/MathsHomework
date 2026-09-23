@@ -6,13 +6,14 @@
 <title>Pong</title>
 
 <style>
-html, body {
+html,
+body {
     margin: 0;
     padding: 0;
     width: 100%;
     height: 100%;
     background: #101010;
-    color: white;
+    color: #ffffff;
     font-family: Arial, sans-serif;
     overflow: hidden;
 }
@@ -28,9 +29,8 @@ body {
     height: auto;
     aspect-ratio: 16 / 10;
     background: #181818;
-    border: 2px solid #444;
+    border: 2px solid #444444;
     display: block;
-    image-rendering: auto;
 }
 </style>
 </head>
@@ -40,11 +40,6 @@ body {
 <canvas id="game" width="960" height="600"></canvas>
 
 <script>
-
-/* =========================================================
-   PONG
-   Standalone local HTML game
-========================================================= */
 
 "use strict";
 
@@ -61,10 +56,10 @@ const HEIGHT = 600;
 
 
 /* =========================================================
-   STORAGE
+   SAVE
 ========================================================= */
 
-const SAVE_KEY = "pong_local_save_v1";
+const SAVE_KEY = "pong_local_save_v2";
 
 
 function defaultSave() {
@@ -91,9 +86,7 @@ function loadSave() {
         if (!raw) {
 
             save = defaultSave();
-
             saveGame();
-
             return;
 
         }
@@ -103,28 +96,62 @@ function loadSave() {
         save = defaultSave();
 
         if (Number.isFinite(parsed.tokens)) {
-            save.tokens = Math.max(0, Math.floor(parsed.tokens));
+
+            save.tokens =
+                Math.max(
+                    0,
+                    Math.floor(parsed.tokens)
+                );
+
         }
 
         if (Number.isFinite(parsed.difficulty)) {
-            save.difficulty = Math.max(
-                0,
-                Math.min(2, Math.floor(parsed.difficulty))
-            );
+
+            save.difficulty =
+                Math.max(
+                    0,
+                    Math.min(
+                        2,
+                        Math.floor(parsed.difficulty)
+                    )
+                );
+
         }
 
         if (Number.isFinite(parsed.unlockedDifficulty)) {
-            save.unlockedDifficulty = Math.max(
-                0,
-                Math.min(2, Math.floor(parsed.unlockedDifficulty))
-            );
+
+            save.unlockedDifficulty =
+                Math.max(
+                    0,
+                    Math.min(
+                        2,
+                        Math.floor(parsed.unlockedDifficulty)
+                    )
+                );
+
         }
 
         if (Number.isFinite(parsed.currentRound)) {
-            save.currentRound = Math.max(
-                1,
-                Math.min(5, Math.floor(parsed.currentRound))
-            );
+
+            save.currentRound =
+                Math.max(
+                    1,
+                    Math.min(
+                        5,
+                        Math.floor(parsed.currentRound)
+                    )
+                );
+
+        }
+
+        if (
+            save.difficulty >
+            save.unlockedDifficulty
+        ) {
+
+            save.difficulty =
+                save.unlockedDifficulty;
+
         }
 
     } catch (error) {
@@ -147,9 +174,6 @@ function saveGame() {
 
     } catch (error) {
 
-        /* Local storage unavailable.
-           The game still works for this session. */
-
     }
 
 }
@@ -163,48 +187,83 @@ loadSave();
 ========================================================= */
 
 const difficulties = [
+
     {
         name: "SLOW",
+
+        ballStartSpeed: 350,
+        ballMaxSpeed: 650,
+
         aiSpeed: 300,
-        startingBallSpeed: 350,
-        maximumBallSpeed: 650
+
+        background: "#181818",
+        primary: "#ffffff",
+        secondary: "#444444",
+        panel: "#222222",
+        border: "#555555",
+        muted: "#888888"
     },
 
     {
         name: "NORMAL",
+
+        ballStartSpeed: 410,
+        ballMaxSpeed: 760,
+
         aiSpeed: 390,
-        startingBallSpeed: 390,
-        maximumBallSpeed: 760
+
+        background: "#0b2516",
+        primary: "#39ff88",
+        secondary: "#174b2c",
+        panel: "#10331f",
+        border: "#27834d",
+        muted: "#6fc894"
     },
 
     {
         name: "HARD",
+
+        ballStartSpeed: 470,
+        ballMaxSpeed: 900,
+
         aiSpeed: 475,
-        startingBallSpeed: 430,
-        maximumBallSpeed: 900
+
+        background: "#2a0b0b",
+        primary: "#ff4d4d",
+        secondary: "#581919",
+        panel: "#3a1111",
+        border: "#9c2c2c",
+        muted: "#d87878"
     }
+
 ];
 
 
 /* =========================================================
-   ROUNDS
+   ROUND TARGETS
 ========================================================= */
 
-const roundCosts = [
-    1,
-    2,
-    3,
-    4,
-    5
-];
-
-
-const winningScores = [
+const roundTargets = [
     5,
     10,
     15,
     20,
     25
+];
+
+
+/* =========================================================
+   ROUND COSTS
+   Slow:
+   1, 3, 7, 15, 31
+========================================================= */
+
+const slowRoundCosts = [
+    1,
+    3,
+    7,
+    15,
+    31
 ];
 
 
@@ -236,33 +295,13 @@ let state = STATES.MENU;
 
 let menuSelection = 0;
 
-
-/* =========================================================
-   DIFFICULTY MENU
-========================================================= */
-
 let difficultySelection =
     save.difficulty;
-
-
-/* =========================================================
-   ROUND MENU
-========================================================= */
 
 let roundSelection =
     save.currentRound - 1;
 
-
-/* =========================================================
-   RESULT MENU
-========================================================= */
-
 let resultSelection = 0;
-
-
-/* =========================================================
-   TOKEN MENU
-========================================================= */
 
 let tokenSelection = 0;
 
@@ -281,24 +320,9 @@ let cooldownRemaining = 0;
 
 let cooldownLastUpdate = 0;
 
-
-/* =========================================================
-   CODE B
-   Verification hook
-========================================================= */
-
-/*
-   Code B verification is intentionally kept separate from
-   gameplay.
-
-   The actual Ed25519 public key will be inserted once the
-   Cloudflare signing key has been properly generated and
-   tested.
-
-   No fake cryptographic key is used here.
-*/
-
 let redemptionMessage = "";
+
+let codeInput = "";
 
 
 /* =========================================================
@@ -326,8 +350,11 @@ let aiY =
 
 const BALL_SIZE = 16;
 
-let ballX = WIDTH / 2;
-let ballY = HEIGHT / 2;
+let ballX =
+    WIDTH / 2;
+
+let ballY =
+    HEIGHT / 2;
 
 let ballVX = 0;
 let ballVY = 0;
@@ -344,18 +371,18 @@ let aiScore = 0;
 
 
 /* =========================================================
-   GAME STATE
+   MATCH
 ========================================================= */
 
-let paused = false;
-
 let gameRunning = false;
+
+let paused = false;
 
 let matchResult = "";
 
 
 /* =========================================================
-   KEYBOARD
+   INPUT
 ========================================================= */
 
 const keys = {};
@@ -374,20 +401,18 @@ window.addEventListener(
 
             event.preventDefault();
 
-            if (state === STATES.PLAYING) {
+            if (
+                state === STATES.PLAYING
+            ) {
 
-                paused = !paused;
+                paused = true;
+                state = STATES.PAUSED;
 
-                if (paused) {
-
-                    state = STATES.PAUSED;
-
-                }
-
-            } else if (state === STATES.PAUSED) {
+            } else if (
+                state === STATES.PAUSED
+            ) {
 
                 paused = false;
-
                 state = STATES.PLAYING;
 
             }
@@ -402,6 +427,7 @@ window.addEventListener(
             handleEscape();
 
         }
+
 
         handleEnter(event);
 
@@ -420,23 +446,245 @@ window.addEventListener(
 
 
 /* =========================================================
-   ENTER HANDLING
+   GET CURRENT DIFFICULTY
+========================================================= */
+
+function getDifficulty() {
+
+    return difficulties[
+        save.difficulty
+    ];
+
+}
+
+
+/* =========================================================
+   GET ROUND COST
+========================================================= */
+
+function getRoundCost(
+    difficultyIndex,
+    roundIndex
+) {
+
+    const multiplier =
+        difficultyIndex === 0
+            ? 1
+            : difficultyIndex === 1
+                ? 2
+                : 5;
+
+
+    return (
+        slowRoundCosts[roundIndex] *
+        multiplier
+    );
+
+}
+
+
+/* =========================================================
+   GET ROUND WINNING
+========================================================= */
+
+function getRoundWinning(
+    difficultyIndex,
+    roundIndex
+) {
+
+    return (
+        getRoundCost(
+            difficultyIndex,
+            roundIndex
+        ) *
+        2
+    );
+
+}
+
+
+/* =========================================================
+   MENU MOVE
+========================================================= */
+
+function menuMove(direction) {
+
+    menuSelection += direction;
+
+
+    if (
+        menuSelection < 0
+    ) {
+
+        menuSelection = 1;
+
+    }
+
+
+    if (
+        menuSelection > 1
+    ) {
+
+        menuSelection = 0;
+
+    }
+
+}
+
+
+/* =========================================================
+   DIFFICULTY MOVE
+========================================================= */
+
+function difficultyMove(direction) {
+
+    difficultySelection += direction;
+
+
+    if (
+        difficultySelection < 0
+    ) {
+
+        difficultySelection = 0;
+
+    }
+
+
+    if (
+        difficultySelection >
+        save.unlockedDifficulty
+    ) {
+
+        difficultySelection =
+            save.unlockedDifficulty;
+
+    }
+
+
+    if (
+        difficultySelection > 2
+    ) {
+
+        difficultySelection = 2;
+
+    }
+
+}
+
+
+/* =========================================================
+   ROUND MOVE
+========================================================= */
+
+function roundMove(direction) {
+
+    roundSelection += direction;
+
+
+    if (
+        roundSelection < 0
+    ) {
+
+        roundSelection = 0;
+
+    }
+
+
+    if (
+        roundSelection > 4
+    ) {
+
+        roundSelection = 4;
+
+    }
+
+}
+
+
+/* =========================================================
+   RESULT MOVE
+========================================================= */
+
+function resultMove(direction) {
+
+    resultSelection += direction;
+
+
+    if (
+        resultSelection < 0
+    ) {
+
+        resultSelection = 1;
+
+    }
+
+
+    if (
+        resultSelection > 1
+    ) {
+
+        resultSelection = 0;
+
+    }
+
+}
+
+
+/* =========================================================
+   TOKEN MOVE
+========================================================= */
+
+function tokenMove(direction) {
+
+    tokenSelection += direction;
+
+
+    if (
+        tokenSelection < 0
+    ) {
+
+        tokenSelection = 1;
+
+    }
+
+
+    if (
+        tokenSelection > 1
+    ) {
+
+        tokenSelection = 0;
+
+    }
+
+}
+
+
+/* =========================================================
+   ENTER
 ========================================================= */
 
 function handleEnter(event) {
 
-    if (event.key !== "Enter") {
+    if (
+        event.key !== "Enter"
+    ) {
+
         return;
+
     }
 
 
-    if (state === STATES.MENU) {
+    if (
+        state === STATES.MENU
+    ) {
 
-        if (menuSelection === 0) {
+        if (
+            menuSelection === 0
+        ) {
 
             state = STATES.DIFFICULTY;
 
-        } else if (menuSelection === 1) {
+        } else {
 
             state = STATES.TOKENS;
 
@@ -447,16 +695,28 @@ function handleEnter(event) {
     }
 
 
-    if (state === STATES.DIFFICULTY) {
+    if (
+        state === STATES.DIFFICULTY
+    ) {
 
-        chooseDifficulty();
+        save.difficulty =
+            difficultySelection;
+
+        saveGame();
+
+        roundSelection =
+            save.currentRound - 1;
+
+        state = STATES.ROUND;
 
         return;
 
     }
 
 
-    if (state === STATES.ROUND) {
+    if (
+        state === STATES.ROUND
+    ) {
 
         chooseRound();
 
@@ -465,7 +725,9 @@ function handleEnter(event) {
     }
 
 
-    if (state === STATES.RESULT) {
+    if (
+        state === STATES.RESULT
+    ) {
 
         chooseResult();
 
@@ -474,27 +736,21 @@ function handleEnter(event) {
     }
 
 
-    if (state === STATES.TOKENS) {
+    if (
+        state === STATES.TOKENS
+    ) {
 
-        chooseTokenMenu();
+        if (
+            tokenSelection === 0
+        ) {
 
-        return;
+            state = STATES.REDEEM;
 
-    }
+        } else {
 
+            state = STATES.MENU;
 
-    if (state === STATES.REDEEM) {
-
-        return;
-
-    }
-
-
-    if (state === STATES.PAUSED) {
-
-        paused = false;
-
-        state = STATES.PLAYING;
+        }
 
         return;
 
@@ -509,23 +765,23 @@ function handleEnter(event) {
 
 function handleEscape() {
 
-    if (state === STATES.PLAYING) {
+    if (
+        state === STATES.PLAYING
+    ) {
 
         paused = true;
-
         state = STATES.PAUSED;
-
         return;
 
     }
 
 
-    if (state === STATES.PAUSED) {
+    if (
+        state === STATES.PAUSED
+    ) {
 
         paused = false;
-
         state = STATES.PLAYING;
-
         return;
 
     }
@@ -537,16 +793,26 @@ function handleEscape() {
     ) {
 
         state = STATES.MENU;
-
         return;
 
     }
 
 
-    if (state === STATES.ROUND) {
+    if (
+        state === STATES.ROUND
+    ) {
 
         state = STATES.DIFFICULTY;
+        return;
 
+    }
+
+
+    if (
+        state === STATES.RESULT
+    ) {
+
+        state = STATES.ROUND;
         return;
 
     }
@@ -558,161 +824,9 @@ function handleEscape() {
     ) {
 
         state = STATES.TOKENS;
-
         return;
 
     }
-
-
-    if (state === STATES.RESULT) {
-
-        state = STATES.ROUND;
-
-    }
-
-}
-
-
-/* =========================================================
-   MENU NAVIGATION
-========================================================= */
-
-function menuMove(direction) {
-
-    menuSelection += direction;
-
-    if (menuSelection < 0) {
-
-        menuSelection = 1;
-
-    }
-
-    if (menuSelection > 1) {
-
-        menuSelection = 0;
-
-    }
-
-}
-
-
-/* =========================================================
-   DIFFICULTY NAVIGATION
-========================================================= */
-
-function difficultyMove(direction) {
-
-    difficultySelection += direction;
-
-    if (difficultySelection < 0) {
-
-        difficultySelection = 0;
-
-    }
-
-    if (
-        difficultySelection >
-        save.unlockedDifficulty
-    ) {
-
-        difficultySelection =
-            save.unlockedDifficulty;
-
-    }
-
-    if (difficultySelection > 2) {
-
-        difficultySelection = 2;
-
-    }
-
-}
-
-
-/* =========================================================
-   ROUND NAVIGATION
-========================================================= */
-
-function roundMove(direction) {
-
-    roundSelection += direction;
-
-    if (roundSelection < 0) {
-
-        roundSelection = 0;
-
-    }
-
-    if (roundSelection > 4) {
-
-        roundSelection = 4;
-
-    }
-
-}
-
-
-/* =========================================================
-   RESULT NAVIGATION
-========================================================= */
-
-function resultMove(direction) {
-
-    resultSelection += direction;
-
-    if (resultSelection < 0) {
-
-        resultSelection = 1;
-
-    }
-
-    if (resultSelection > 1) {
-
-        resultSelection = 0;
-
-    }
-
-}
-
-
-/* =========================================================
-   TOKEN MENU NAVIGATION
-========================================================= */
-
-function tokenMove(direction) {
-
-    tokenSelection += direction;
-
-    if (tokenSelection < 0) {
-
-        tokenSelection = 1;
-
-    }
-
-    if (tokenSelection > 1) {
-
-        tokenSelection = 0;
-
-    }
-
-}
-
-
-/* =========================================================
-   DIFFICULTY CHOICE
-========================================================= */
-
-function chooseDifficulty() {
-
-    save.difficulty =
-        difficultySelection;
-
-    saveGame();
-
-    roundSelection =
-        save.currentRound - 1;
-
-    state = STATES.ROUND;
 
 }
 
@@ -727,17 +841,20 @@ function chooseRound() {
         roundSelection + 1;
 
     const cost =
-        roundCosts[roundSelection];
+        getRoundCost(
+            save.difficulty,
+            roundSelection
+        );
 
 
-    if (save.tokens < cost) {
+    if (
+        save.tokens < cost
+    ) {
 
         redemptionMessage =
             "You need " +
             cost +
-            " token" +
-            (cost === 1 ? "" : "s") +
-            " to play this round.";
+            " tokens to play this round.";
 
         state = STATES.TOKENS;
 
@@ -762,24 +879,29 @@ function chooseRound() {
    START ROUND
 ========================================================= */
 
-function startRound(roundNumber) {
+function startRound(
+    roundNumber
+) {
+
+    const roundIndex =
+        roundNumber - 1;
 
     const cost =
-        roundCosts[roundNumber - 1];
+        getRoundCost(
+            save.difficulty,
+            roundIndex
+        );
 
 
-    if (save.tokens < cost) {
+    if (
+        save.tokens < cost
+    ) {
 
         state = STATES.TOKENS;
-
         return;
 
     }
 
-
-    /*
-       Pay the round cost immediately.
-    */
 
     save.tokens -= cost;
 
@@ -819,13 +941,14 @@ function startRound(roundNumber) {
 
 
 /* =========================================================
-   RESET BALL
+   BALL RESET
 ========================================================= */
 
 function resetBall(direction) {
 
     const difficulty =
-        difficulties[save.difficulty];
+        getDifficulty();
+
 
     const roundMultiplier =
         1 +
@@ -844,9 +967,9 @@ function resetBall(direction) {
 
     ballSpeed =
         Math.min(
-            difficulty.startingBallSpeed *
+            difficulty.ballStartSpeed *
             roundMultiplier,
-            difficulty.maximumBallSpeed
+            difficulty.ballMaxSpeed
         );
 
 
@@ -860,7 +983,6 @@ function resetBall(direction) {
         ballSpeed *
         direction;
 
-
     ballVY =
         ballSpeed *
         angle;
@@ -869,7 +991,7 @@ function resetBall(direction) {
 
 
 /* =========================================================
-   PLAYER UPDATE
+   PLAYER
 ========================================================= */
 
 function updatePlayer(dt) {
@@ -899,16 +1021,15 @@ function updatePlayer(dt) {
     }
 
 
-    const playerSpeed = 540;
-
-
     playerY +=
         movement *
-        playerSpeed *
+        540 *
         dt;
 
 
-    if (playerY < 0) {
+    if (
+        playerY < 0
+    ) {
 
         playerY = 0;
 
@@ -931,23 +1052,19 @@ function updatePlayer(dt) {
 
 
 /* =========================================================
-   AI UPDATE
+   AI
 ========================================================= */
 
 function updateAI(dt) {
 
     const difficulty =
-        difficulties[save.difficulty];
+        getDifficulty();
 
 
-    let target =
+    const target =
         ballY -
         PADDLE_HEIGHT / 2;
 
-
-    /*
-       Higher rounds make the AI slightly more responsive.
-    */
 
     const roundMultiplier =
         1 +
@@ -962,7 +1079,9 @@ function updateAI(dt) {
         roundMultiplier;
 
 
-    if (aiY < target) {
+    if (
+        aiY < target
+    ) {
 
         aiY +=
             speed *
@@ -971,7 +1090,9 @@ function updateAI(dt) {
     }
 
 
-    if (aiY > target) {
+    if (
+        aiY > target
+    ) {
 
         aiY -=
             speed *
@@ -980,7 +1101,9 @@ function updateAI(dt) {
     }
 
 
-    if (aiY < 0) {
+    if (
+        aiY < 0
+    ) {
 
         aiY = 0;
 
@@ -1003,7 +1126,7 @@ function updateAI(dt) {
 
 
 /* =========================================================
-   BALL UPDATE
+   BALL
 ========================================================= */
 
 function updateBall(dt) {
@@ -1016,10 +1139,6 @@ function updateBall(dt) {
         ballVY *
         dt;
 
-
-    /*
-       TOP
-    */
 
     if (
         ballY -
@@ -1036,10 +1155,6 @@ function updateBall(dt) {
     }
 
 
-    /*
-       BOTTOM
-    */
-
     if (
         ballY +
         BALL_SIZE / 2 >=
@@ -1055,10 +1170,6 @@ function updateBall(dt) {
 
     }
 
-
-    /*
-       PLAYER PADDLE
-    */
 
     if (
         ballVX < 0 &&
@@ -1081,7 +1192,6 @@ function updateBall(dt) {
             PADDLE_WIDTH +
             BALL_SIZE / 2;
 
-
         bounceFromPaddle(
             playerY,
             true
@@ -1089,10 +1199,6 @@ function updateBall(dt) {
 
     }
 
-
-    /*
-       AI PADDLE
-    */
 
     if (
         ballVX > 0 &&
@@ -1114,7 +1220,6 @@ function updateBall(dt) {
             AI_X -
             BALL_SIZE / 2;
 
-
         bounceFromPaddle(
             aiY,
             false
@@ -1122,10 +1227,6 @@ function updateBall(dt) {
 
     }
 
-
-    /*
-       AI SCORES
-    */
 
     if (
         ballX < -40
@@ -1137,10 +1238,6 @@ function updateBall(dt) {
 
     }
 
-
-    /*
-       PLAYER SCORES
-    */
 
     if (
         ballX >
@@ -1157,7 +1254,7 @@ function updateBall(dt) {
 
 
 /* =========================================================
-   PADDLE BOUNCE
+   BOUNCE
 ========================================================= */
 
 function bounceFromPaddle(
@@ -1166,7 +1263,7 @@ function bounceFromPaddle(
 ) {
 
     const difficulty =
-        difficulties[save.difficulty];
+        getDifficulty();
 
 
     const relative =
@@ -1185,7 +1282,7 @@ function bounceFromPaddle(
     ballSpeed =
         Math.min(
             ballSpeed * 1.045,
-            difficulty.maximumBallSpeed
+            difficulty.ballMaxSpeed
         );
 
 
@@ -1195,29 +1292,20 @@ function bounceFromPaddle(
         0.82;
 
 
-    if (playerSide) {
+    const horizontal =
+        Math.sqrt(
+            Math.max(
+                0,
+                ballSpeed * ballSpeed -
+                ballVY * ballVY
+            )
+        );
 
-        ballVX =
-            Math.sqrt(
-                Math.max(
-                    0,
-                    ballSpeed * ballSpeed -
-                    ballVY * ballVY
-                )
-            );
 
-    } else {
-
-        ballVX =
-            -Math.sqrt(
-                Math.max(
-                    0,
-                    ballSpeed * ballSpeed -
-                    ballVY * ballVY
-                )
-            );
-
-    }
+    ballVX =
+        playerSide
+            ? horizontal
+            : -horizontal;
 
 }
 
@@ -1229,7 +1317,7 @@ function bounceFromPaddle(
 function checkScore() {
 
     const target =
-        winningScores[
+        roundTargets[
             save.currentRound - 1
         ];
 
@@ -1239,7 +1327,6 @@ function checkScore() {
     ) {
 
         finishRound(true);
-
         return;
 
     }
@@ -1250,7 +1337,6 @@ function checkScore() {
     ) {
 
         finishRound(false);
-
         return;
 
     }
@@ -1269,7 +1355,9 @@ function checkScore() {
    FINISH ROUND
 ========================================================= */
 
-function finishRound(playerWon) {
+function finishRound(
+    playerWon
+) {
 
     gameRunning = false;
 
@@ -1279,26 +1367,28 @@ function finishRound(playerWon) {
             : "LOSS";
 
 
-    /*
-       Winning refunds the cost of the round.
-    */
-
-    if (playerWon) {
+    if (
+        playerWon
+    ) {
 
         const cost =
-            roundCosts[
+            getRoundCost(
+                save.difficulty,
                 save.currentRound - 1
-            ];
+            );
 
-        save.tokens += cost;
+        const winnings =
+            getRoundWinning(
+                save.difficulty,
+                save.currentRound - 1
+            );
+
+
+        save.tokens +=
+            winnings;
 
     }
 
-
-    /*
-       Completing round 5 unlocks the next
-       difficulty.
-    */
 
     if (
         playerWon &&
@@ -1318,7 +1408,6 @@ function finishRound(playerWon) {
 
     saveGame();
 
-
     resultSelection = 0;
 
     state = STATES.RESULT;
@@ -1327,7 +1416,7 @@ function finishRound(playerWon) {
 
 
 /* =========================================================
-   RESULT MENU
+   RESULT
 ========================================================= */
 
 function chooseResult() {
@@ -1349,9 +1438,10 @@ function chooseResult() {
 
 
         const cost =
-            roundCosts[
+            getRoundCost(
+                save.difficulty,
                 save.currentRound - 1
-            ];
+            );
 
 
         if (
@@ -1359,7 +1449,6 @@ function chooseResult() {
         ) {
 
             state = STATES.TOKENS;
-
             return;
 
         }
@@ -1369,40 +1458,44 @@ function chooseResult() {
             save.currentRound
         );
 
-
-    } else {
-
-        state = STATES.MENU;
+        return;
 
     }
+
+
+    state = STATES.MENU;
 
 }
 
 
 /* =========================================================
-   TOKEN MENU
+   REDEMPTION
 ========================================================= */
 
-function chooseTokenMenu() {
+function requestNewCode() {
 
     if (
-        tokenSelection === 0
+        retryCount >=
+        MAX_RETRIES
     ) {
 
-        state = STATES.REDEEM;
-
-    } else {
-
-        state = STATES.MENU;
+        beginCooldown();
+        return;
 
     }
 
+
+    retryCount++;
+
+    redemptionMessage =
+        "New redemption attempt " +
+        retryCount +
+        " of " +
+        MAX_RETRIES +
+        ".";
+
 }
 
-
-/* =========================================================
-   COOLDOWN
-========================================================= */
 
 function beginCooldown() {
 
@@ -1433,7 +1526,6 @@ function updateCooldown(now) {
     ) {
 
         cooldownLastUpdate = now;
-
         return;
 
     }
@@ -1473,119 +1565,70 @@ function updateCooldown(now) {
 
 
 /* =========================================================
-   REDEMPTION RETRY
+   REDEMPTION TEXT INPUT
 ========================================================= */
-
-function requestNewCode() {
-
-    if (
-        retryCount >=
-        MAX_RETRIES
-    ) {
-
-        beginCooldown();
-
-        return;
-
-    }
-
-
-    retryCount++;
-
-    redemptionMessage =
-        "New redemption attempt " +
-        retryCount +
-        " of " +
-        MAX_RETRIES +
-        ".";
-
-
-    /*
-       The actual Code A generation and
-       Code B verification will be connected
-       to the Cloudflare redemption system here.
-    */
-
-}
-
-
-/* =========================================================
-   CODE B INPUT
-========================================================= */
-
-let codeInput = "";
-
-
-function handleTextInput(event) {
-
-    if (
-        state !== STATES.REDEEM
-    ) {
-
-        return;
-
-    }
-
-
-    if (
-        event.key === "Backspace"
-    ) {
-
-        codeInput =
-            codeInput.slice(
-                0,
-                -1
-            );
-
-        event.preventDefault();
-
-        return;
-
-    }
-
-
-    if (
-        event.key === "Enter"
-    ) {
-
-        attemptCodeB();
-
-        event.preventDefault();
-
-        return;
-
-    }
-
-
-    if (
-        event.key.length === 1
-    ) {
-
-        if (
-            codeInput.length < 300
-        ) {
-
-            codeInput +=
-                event.key.toUpperCase();
-
-        }
-
-        event.preventDefault();
-
-    }
-
-}
-
 
 window.addEventListener(
     "keydown",
-    handleTextInput
+    function(event) {
+
+        if (
+            state !== STATES.REDEEM
+        ) {
+
+            return;
+
+        }
+
+
+        if (
+            event.key === "Backspace"
+        ) {
+
+            codeInput =
+                codeInput.slice(
+                    0,
+                    -1
+                );
+
+            event.preventDefault();
+            return;
+
+        }
+
+
+        if (
+            event.key === "Enter"
+        ) {
+
+            attemptCodeB();
+
+            event.preventDefault();
+            return;
+
+        }
+
+
+        if (
+            event.key.length === 1
+        ) {
+
+            if (
+                codeInput.length < 300
+            ) {
+
+                codeInput +=
+                    event.key.toUpperCase();
+
+            }
+
+            event.preventDefault();
+
+        }
+
+    }
 );
 
-
-/* =========================================================
-   CODE B ATTEMPT
-========================================================= */
 
 function attemptCodeB() {
 
@@ -1602,7 +1645,7 @@ function attemptCodeB() {
 
 
     redemptionMessage =
-        "Code B verification will be connected to the signing key.";
+        "Code B verification will be connected next.";
 
 }
 
@@ -1611,10 +1654,12 @@ function attemptCodeB() {
    DRAW HELPERS
 ========================================================= */
 
-function clearScreen() {
+function clearScreen(
+    color
+) {
 
     ctx.fillStyle =
-        "#101010";
+        color;
 
     ctx.fillRect(
         0,
@@ -1626,16 +1671,17 @@ function clearScreen() {
 }
 
 
-function text(
+function drawText(
     value,
     x,
     y,
-    size = 24,
+    size,
+    color,
     align = "center"
 ) {
 
     ctx.fillStyle =
-        "#ffffff";
+        color;
 
     ctx.font =
         "bold " +
@@ -1657,15 +1703,17 @@ function text(
 }
 
 
-function panel(
+function drawPanel(
     x,
     y,
     width,
-    height
+    height,
+    fill,
+    border
 ) {
 
     ctx.fillStyle =
-        "#181818";
+        fill;
 
     ctx.fillRect(
         x,
@@ -1676,7 +1724,7 @@ function panel(
 
 
     ctx.strokeStyle =
-        "#444444";
+        border;
 
     ctx.lineWidth = 2;
 
@@ -1690,13 +1738,19 @@ function panel(
 }
 
 
-function option(
+/* =========================================================
+   NORMAL MENU OPTION
+========================================================= */
+
+function drawMenuOption(
     label,
     y,
     selected
 ) {
 
-    if (selected) {
+    if (
+        selected
+    ) {
 
         ctx.fillStyle =
             "#ffffff";
@@ -1708,194 +1762,300 @@ function option(
             54
         );
 
-        ctx.fillStyle =
-            "#111111";
+
+        drawText(
+            label,
+            WIDTH / 2,
+            y,
+            24,
+            "#111111"
+        );
 
     } else {
 
-        ctx.fillStyle =
-            "#ffffff";
+        drawText(
+            label,
+            WIDTH / 2,
+            y,
+            24,
+            "#ffffff"
+        );
 
     }
-
-
-    ctx.font =
-        "bold 24px Arial";
-
-    ctx.textAlign =
-        "center";
-
-    ctx.textBaseline =
-        "middle";
-
-    ctx.fillText(
-        label,
-        WIDTH / 2,
-        y
-    );
 
 }
 
 
 /* =========================================================
-   DRAW MAIN MENU
+   DIFFICULTY BOX
+========================================================= */
+
+function drawDifficultyBox(
+    index,
+    y
+) {
+
+    const difficulty =
+        difficulties[index];
+
+    const unlocked =
+        index <=
+        save.unlockedDifficulty;
+
+    const selected =
+        difficultySelection === index;
+
+
+    let fill =
+        difficulty.panel;
+
+    let border =
+        difficulty.border;
+
+    let textColor =
+        difficulty.primary;
+
+
+    if (
+        selected &&
+        unlocked
+    ) {
+
+        fill =
+            difficulty.primary;
+
+        border =
+            difficulty.primary;
+
+        textColor =
+            index === 0
+                ? "#111111"
+                : difficulty.background;
+
+    }
+
+
+    if (
+        !unlocked
+    ) {
+
+        fill =
+            "#141414";
+
+        border =
+            "#333333";
+
+        textColor =
+            "#555555";
+
+    }
+
+
+    drawPanel(
+        WIDTH / 2 - 230,
+        y - 32,
+        460,
+        64,
+        fill,
+        border
+    );
+
+
+    drawText(
+        difficulty.name,
+        WIDTH / 2,
+        y,
+        25,
+        textColor
+    );
+
+
+    if (
+        !unlocked
+    ) {
+
+        drawText(
+            "LOCKED",
+            WIDTH / 2 + 140,
+            y,
+            13,
+            "#555555"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   MAIN MENU
 ========================================================= */
 
 function drawMenu() {
 
-    clearScreen();
+    clearScreen(
+        "#101010"
+    );
 
 
-    text(
+    drawText(
         "PONG",
         WIDTH / 2,
         125,
-        64
+        64,
+        "#ffffff"
     );
 
 
-    text(
+    drawText(
         "TOKENS  " + save.tokens,
         WIDTH / 2,
-        180,
-        20
+        182,
+        20,
+        "#ffffff"
     );
 
 
-    option(
+    drawMenuOption(
         "PLAY",
         285,
         menuSelection === 0
     );
 
 
-    option(
+    drawMenuOption(
         "TOKENS",
         355,
         menuSelection === 1
     );
 
 
-    text(
+    drawText(
         "W / S or ↑ / ↓",
         WIDTH / 2,
         480,
-        16
+        16,
+        "#888888"
     );
 
 
-    text(
+    drawText(
         "ENTER SELECTS",
         WIDTH / 2,
         510,
-        14
+        14,
+        "#666666"
     );
 
 }
 
 
 /* =========================================================
-   DRAW DIFFICULTY
+   DIFFICULTY MENU
 ========================================================= */
 
 function drawDifficulty() {
 
-    clearScreen();
+    clearScreen(
+        "#101010"
+    );
 
 
-    text(
+    drawText(
         "DIFFICULTY",
         WIDTH / 2,
-        100,
-        46
+        75,
+        44,
+        "#ffffff"
     );
 
 
-    option(
-        "SLOW",
-        225,
-        difficultySelection === 0
+    drawDifficultyBox(
+        0,
+        180
     );
 
 
-    option(
-        "NORMAL",
-        305,
-        difficultySelection === 1
+    drawDifficultyBox(
+        1,
+        260
     );
 
 
-    option(
-        "HARD",
-        385,
-        difficultySelection === 2
+    drawDifficultyBox(
+        2,
+        340
     );
 
 
-    if (
-        save.unlockedDifficulty < 2
-    ) {
-
-        for (
-            let i = save.unlockedDifficulty + 1;
-            i < 3;
-            i++
-        ) {
-
-            ctx.fillStyle =
-                "#666666";
-
-            ctx.font =
-                "14px Arial";
-
-            ctx.textAlign =
-                "center";
-
-            ctx.fillText(
-                "LOCKED",
-                WIDTH / 2 + 145,
-                225 + (
-                    i * 80
-                )
-            );
-
-        }
-
-    }
-
-
-    text(
-        "ENTER SELECTS   •   ESC BACK",
+    drawText(
+        "Finish one difficulty to unlock the next",
         WIDTH / 2,
-        505,
-        14
+        430,
+        17,
+        "#888888"
+    );
+
+
+    drawText(
+        "W / S or ↑ / ↓     ENTER SELECTS",
+        WIDTH / 2,
+        490,
+        14,
+        "#666666"
+    );
+
+
+    drawText(
+        "ESC BACK",
+        WIDTH / 2,
+        525,
+        13,
+        "#555555"
     );
 
 }
 
 
 /* =========================================================
-   DRAW ROUND MENU
+   ROUND MENU
 ========================================================= */
 
 function drawRound() {
 
-    clearScreen();
-
-
-    text(
-        "SELECT ROUND",
-        WIDTH / 2,
-        85,
-        44
+    clearScreen(
+        "#101010"
     );
 
 
-    text(
+    drawText(
+        "SELECT ROUND",
+        WIDTH / 2,
+        75,
+        44,
+        "#ffffff"
+    );
+
+
+    drawText(
+        difficulties[
+            save.difficulty
+        ].name,
+        WIDTH / 2,
+        120,
+        17,
+        difficulties[
+            save.difficulty
+        ].primary
+    );
+
+
+    drawText(
         "TOKENS  " + save.tokens,
         WIDTH / 2,
-        130,
-        18
+        150,
+        17,
+        "#ffffff"
     );
 
 
@@ -1909,94 +2069,149 @@ function drawRound() {
             i + 1;
 
         const cost =
-            roundCosts[i];
+            getRoundCost(
+                save.difficulty,
+                i
+            );
+
+        const target =
+            roundTargets[i];
 
         const y =
-            200 +
-            i * 65;
-
+            205 +
+            i * 62;
 
         const affordable =
             save.tokens >= cost;
-
 
         const selected =
             roundSelection === i;
 
 
-        if (selected && affordable) {
+        let fill =
+            affordable
+                ? "#181818"
+                : "#101010";
 
-            ctx.fillStyle =
-                "#ffffff";
+        let border =
+            affordable
+                ? "#444444"
+                : "#252525";
 
-            ctx.fillRect(
-                WIDTH / 2 - 220,
-                y - 24,
-                440,
-                48
-            );
+        let colour =
+            affordable
+                ? "#ffffff"
+                : "#555555";
 
-            ctx.fillStyle =
-                "#111111";
 
-        } else {
+        if (
+            selected &&
+            affordable
+        ) {
 
-            ctx.fillStyle =
-                affordable
-                    ? "#ffffff"
-                    : "#555555";
+            fill =
+                difficulties[
+                    save.difficulty
+                ].primary;
+
+            border =
+                difficulties[
+                    save.difficulty
+                ].primary;
+
+            colour =
+                save.difficulty === 0
+                    ? "#111111"
+                    : difficulties[
+                        save.difficulty
+                    ].background;
 
         }
 
 
-        ctx.font =
-            "bold 21px Arial";
+        drawPanel(
+            WIDTH / 2 - 235,
+            y - 24,
+            470,
+            48,
+            fill,
+            border
+        );
 
-        ctx.textAlign =
-            "center";
 
-        ctx.textBaseline =
-            "middle";
-
-
-        ctx.fillText(
+        drawText(
             "ROUND " +
             round +
             "    " +
             cost +
-            " TOKEN" +
+            " → " +
             (
-                cost === 1
-                    ? ""
-                    : "S"
-            ),
+                getRoundWinning(
+                    save.difficulty,
+                    i
+                )
+            ) +
+            " TOKENS",
             WIDTH / 2,
-            y
+            y,
+            18,
+            colour
+        );
+
+
+        drawText(
+            "FIRST TO " +
+            target,
+            WIDTH / 2 + 310,
+            y,
+            12,
+            affordable
+                ? "#888888"
+                : "#444444"
         );
 
     }
 
 
-    text(
-        "FIRST TO " +
-        winningScores[
-            roundSelection
-        ],
+    drawText(
+        "ESC BACK",
         WIDTH / 2,
-        535,
-        14
+        550,
+        13,
+        "#555555"
     );
 
 }
 
 
 /* =========================================================
-   DRAW PLAYING FIELD
+   GAME
 ========================================================= */
 
 function drawGame() {
 
-    clearScreen();
+    const difficulty =
+        getDifficulty();
+
+
+    clearScreen(
+        difficulty.background
+    );
+
+
+    /*
+       Top round indicator
+    */
+
+    drawText(
+        "ROUND " +
+        save.currentRound +
+        "/5",
+        WIDTH / 2,
+        25,
+        18,
+        difficulty.primary
+    );
 
 
     /*
@@ -2004,7 +2219,7 @@ function drawGame() {
     */
 
     ctx.strokeStyle =
-        "#333333";
+        difficulty.secondary;
 
     ctx.lineWidth = 2;
 
@@ -2012,7 +2227,6 @@ function drawGame() {
         12,
         14
     ]);
-
 
     ctx.beginPath();
 
@@ -2032,11 +2246,11 @@ function drawGame() {
 
 
     /*
-       Border
+       Outer border
     */
 
     ctx.strokeStyle =
-        "#444444";
+        difficulty.border;
 
     ctx.strokeRect(
         0,
@@ -2047,11 +2261,43 @@ function drawGame() {
 
 
     /*
+       Score
+    */
+
+    const target =
+        roundTargets[
+            save.currentRound - 1
+        ];
+
+
+    drawText(
+        playerScore +
+        "/" +
+        target,
+        WIDTH / 2 - 90,
+        70,
+        40,
+        difficulty.primary
+    );
+
+
+    drawText(
+        aiScore +
+        "/" +
+        target,
+        WIDTH / 2 + 90,
+        70,
+        40,
+        difficulty.primary
+    );
+
+
+    /*
        Paddles
     */
 
     ctx.fillStyle =
-        "#ffffff";
+        difficulty.primary;
 
 
     ctx.fillRect(
@@ -2085,56 +2331,43 @@ function drawGame() {
 
 
     /*
-       Score
-    */
-
-    text(
-        playerScore,
-        WIDTH / 2 - 70,
-        55,
-        42
-    );
-
-
-    text(
-        aiScore,
-        WIDTH / 2 + 70,
-        55,
-        42
-    );
-
-
-    /*
-       Round
-    */
-
-    text(
-        "ROUND " +
-        save.currentRound,
-        WIDTH / 2,
-        HEIGHT - 25,
-        14
-    );
-
-
-    /*
        Tokens
     */
 
-    text(
+    drawText(
         "TOKENS " +
         save.tokens,
         20,
         22,
         15,
+        difficulty.primary,
         "left"
     );
 
 
-    if (state === STATES.PAUSED) {
+    /*
+       Bottom
+    */
+
+    drawText(
+        "W / S or ↑ / ↓     SPACE PAUSE",
+        WIDTH / 2,
+        HEIGHT - 22,
+        13,
+        difficulty.muted
+    );
+
+
+    /*
+       Pause overlay
+    */
+
+    if (
+        state === STATES.PAUSED
+    ) {
 
         ctx.fillStyle =
-            "rgba(0,0,0,0.65)";
+            "rgba(0,0,0,0.70)";
 
         ctx.fillRect(
             0,
@@ -2144,19 +2377,21 @@ function drawGame() {
         );
 
 
-        text(
+        drawText(
             "PAUSED",
             WIDTH / 2,
             HEIGHT / 2,
-            48
+            48,
+            difficulty.primary
         );
 
 
-        text(
+        drawText(
             "SPACE TO RESUME",
             WIDTH / 2,
             HEIGHT / 2 + 55,
-            16
+            16,
+            difficulty.primary
         );
 
     }
@@ -2165,46 +2400,77 @@ function drawGame() {
 
 
 /* =========================================================
-   DRAW RESULT
+   RESULT
 ========================================================= */
 
 function drawResult() {
 
-    clearScreen();
+    const difficulty =
+        getDifficulty();
+
+
+    clearScreen(
+        "#101010"
+    );
 
 
     const won =
         matchResult === "WIN";
 
 
-    text(
+    drawText(
         won
             ? "ROUND COMPLETE"
             : "ROUND LOST",
         WIDTH / 2,
-        125,
-        44
+        115,
+        42,
+        won
+            ? difficulty.primary
+            : "#ffffff"
     );
 
 
-    text(
+    const target =
+        roundTargets[
+            save.currentRound - 1
+        ];
+
+
+    drawText(
         playerScore +
+        "/" +
+        target +
         "  -  " +
-        aiScore,
+        aiScore +
+        "/" +
+        target,
         WIDTH / 2,
-        190,
-        42
+        180,
+        38,
+        "#ffffff"
     );
 
 
-    if (won) {
+    if (
+        won
+    ) {
 
-        text(
-            "TOKENS " +
-            save.tokens,
+        const winnings =
+            getRoundWinning(
+                save.difficulty,
+                save.currentRound - 1
+            );
+
+
+        drawText(
+            "+" +
+            winnings +
+            " TOKENS",
             WIDTH / 2,
-            245,
-            18
+            235,
+            20,
+            difficulty.primary
         );
 
     }
@@ -2215,14 +2481,34 @@ function drawResult() {
         save.currentRound === 5
     ) {
 
-        text(
+        if (
             save.difficulty < 2
-                ? "NEXT DIFFICULTY UNLOCKED"
-                : "ALL DIFFICULTIES COMPLETE",
-            WIDTH / 2,
-            290,
-            18
-        );
+        ) {
+
+            drawText(
+                difficulties[
+                    save.difficulty + 1
+                ].name +
+                " UNLOCKED",
+                WIDTH / 2,
+                280,
+                20,
+                difficulties[
+                    save.difficulty + 1
+                ].primary
+            );
+
+        } else {
+
+            drawText(
+                "ALL DIFFICULTIES COMPLETE",
+                WIDTH / 2,
+                280,
+                18,
+                difficulty.primary
+            );
+
+        }
 
     }
 
@@ -2232,74 +2518,79 @@ function drawResult() {
         save.currentRound < 5
     ) {
 
-        option(
+        drawMenuOption(
             "NEXT ROUND",
-            370,
+            365,
             resultSelection === 0
         );
 
     } else {
 
-        option(
+        drawMenuOption(
             "PLAY AGAIN",
-            370,
+            365,
             resultSelection === 0
         );
 
     }
 
 
-    option(
+    drawMenuOption(
         "MAIN MENU",
-        440,
+        435,
         resultSelection === 1
     );
 
 
-    text(
-        "ENTER SELECTS",
+    drawText(
+        "W / S or ↑ / ↓",
         WIDTH / 2,
         510,
-        14
+        14,
+        "#666666"
     );
 
 }
 
 
 /* =========================================================
-   DRAW TOKEN MENU
+   TOKENS MENU
 ========================================================= */
 
 function drawTokens() {
 
-    clearScreen();
-
-
-    text(
-        "TOKENS",
-        WIDTH / 2,
-        100,
-        48
+    clearScreen(
+        "#101010"
     );
 
 
-    text(
+    drawText(
+        "TOKENS",
+        WIDTH / 2,
+        105,
+        48,
+        "#ffffff"
+    );
+
+
+    drawText(
         "CURRENT BALANCE: " +
         save.tokens,
         WIDTH / 2,
-        160,
-        22
+        165,
+        22,
+        "#ffffff"
     );
 
 
-    option(
+    drawMenuOption(
         "REDEEM CODE",
         285,
         tokenSelection === 0
     );
 
 
-    option(
+    drawMenuOption(
         "BACK",
         355,
         tokenSelection === 1
@@ -2310,125 +2601,107 @@ function drawTokens() {
         redemptionMessage
     ) {
 
-        text(
+        drawText(
             redemptionMessage,
             WIDTH / 2,
-            455,
-            15
+            445,
+            15,
+            "#888888"
         );
 
     }
 
 
-    text(
+    drawText(
         "W / S • ENTER • ESC",
         WIDTH / 2,
         515,
-        14
+        14,
+        "#666666"
     );
 
 }
 
 
 /* =========================================================
-   DRAW REDEEM
+   REDEEM
 ========================================================= */
 
 function drawRedeem() {
 
-    clearScreen();
-
-
-    text(
-        "REDEEM TOKENS",
-        WIDTH / 2,
-        85,
-        42
+    clearScreen(
+        "#101010"
     );
 
 
-    text(
+    drawText(
+        "REDEEM TOKENS",
+        WIDTH / 2,
+        90,
+        42,
+        "#ffffff"
+    );
+
+
+    drawText(
         "TOKENS  " +
         save.tokens,
         WIDTH / 2,
-        130,
-        18
+        135,
+        18,
+        "#ffffff"
     );
 
 
-    ctx.fillStyle =
-        "#181818";
-
-    ctx.fillRect(
+    drawPanel(
         100,
         205,
         760,
-        80
+        80,
+        "#181818",
+        "#555555"
     );
 
 
-    ctx.strokeStyle =
-        "#555555";
-
-    ctx.strokeRect(
-        100,
-        205,
-        760,
-        80
-    );
-
-
-    const displayed =
+    drawText(
         codeInput.length > 0
             ? codeInput
-            : "ENTER CODE B";
-
-
-    ctx.fillStyle =
+            : "ENTER CODE B",
+        125,
+        245,
+        18,
         codeInput.length > 0
             ? "#ffffff"
-            : "#666666";
-
-    ctx.font =
-        "18px Arial";
-
-    ctx.textAlign =
-        "left";
-
-    ctx.textBaseline =
-        "middle";
-
-
-    ctx.fillText(
-        displayed,
-        125,
-        245
+            : "#666666",
+        "left"
     );
 
 
-    text(
+    drawText(
         "ENTER TO REDEEM",
         WIDTH / 2,
         330,
-        15
+        15,
+        "#888888"
     );
 
 
-    option(
+    drawMenuOption(
         "CODE ISN'T WORKING",
         410,
         false
     );
 
 
-    text(
+    drawText(
         "RETRIES: " +
         retryCount +
         " / " +
         MAX_RETRIES,
         WIDTH / 2,
-        470,
-        15
+        465,
+        15,
+        "#888888"
     );
 
 
@@ -2436,40 +2709,45 @@ function drawRedeem() {
         redemptionMessage
     ) {
 
-        text(
+        drawText(
             redemptionMessage,
             WIDTH / 2,
-            520,
-            13
+            515,
+            13,
+            "#777777"
         );
 
     }
 
 
-    text(
+    drawText(
         "ESC BACK",
         WIDTH / 2,
         555,
-        13
+        13,
+        "#555555"
     );
 
 }
 
 
 /* =========================================================
-   DRAW COOLDOWN
+   COOLDOWN
 ========================================================= */
 
 function drawCooldown() {
 
-    clearScreen();
+    clearScreen(
+        "#101010"
+    );
 
 
-    text(
+    drawText(
         "REDEMPTION COOLDOWN",
         WIDTH / 2,
         150,
-        38
+        38,
+        "#ffffff"
     );
 
 
@@ -2497,35 +2775,39 @@ function drawCooldown() {
             .padStart(2, "0");
 
 
-    text(
+    drawText(
         timer,
         WIDTH / 2,
         270,
-        64
+        64,
+        "#ffffff"
     );
 
 
-    text(
+    drawText(
         "After the cooldown, you receive",
         WIDTH / 2,
         350,
-        18
+        18,
+        "#888888"
     );
 
 
-    text(
+    drawText(
         "3 new redemption attempts.",
         WIDTH / 2,
         385,
-        18
+        18,
+        "#888888"
     );
 
 
-    text(
+    drawText(
         "ESC BACK",
         WIDTH / 2,
         500,
-        14
+        14,
+        "#555555"
     );
 
 }
@@ -2542,7 +2824,6 @@ function draw() {
     ) {
 
         drawMenu();
-
         return;
 
     }
@@ -2553,7 +2834,6 @@ function draw() {
     ) {
 
         drawDifficulty();
-
         return;
 
     }
@@ -2564,7 +2844,6 @@ function draw() {
     ) {
 
         drawRound();
-
         return;
 
     }
@@ -2576,7 +2855,6 @@ function draw() {
     ) {
 
         drawGame();
-
         return;
 
     }
@@ -2587,7 +2865,6 @@ function draw() {
     ) {
 
         drawResult();
-
         return;
 
     }
@@ -2598,7 +2875,6 @@ function draw() {
     ) {
 
         drawTokens();
-
         return;
 
     }
@@ -2609,7 +2885,6 @@ function draw() {
     ) {
 
         drawRedeem();
-
         return;
 
     }
@@ -2620,7 +2895,6 @@ function draw() {
     ) {
 
         drawCooldown();
-
         return;
 
     }
@@ -2639,9 +2913,7 @@ function update(dt) {
     ) {
 
         updatePlayer(dt);
-
         updateAI(dt);
-
         updateBall(dt);
 
     }
@@ -2650,7 +2922,7 @@ function update(dt) {
 
 
 /* =========================================================
-   MENU KEYBOARD CONTROL
+   MENU INPUT
 ========================================================= */
 
 window.addEventListener(
@@ -2830,16 +3102,12 @@ window.addEventListener(
 
 
 /* =========================================================
-   COOLDOWN CLOCK
+   LOOP
 ========================================================= */
 
 let previousTime =
     performance.now();
 
-
-/* =========================================================
-   MAIN LOOP
-========================================================= */
 
 function loop(now) {
 
