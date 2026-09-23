@@ -2,288 +2,140 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pong</title>
 
 <style>
 html,
 body {
     margin: 0;
+    padding: 0;
     width: 100%;
     height: 100%;
-    overflow: hidden;
-    background: #090b0e;
+    background: #101010;
     color: white;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
 }
 
 body {
     display: flex;
     align-items: center;
     justify-content: center;
-    user-select: none;
-    -webkit-user-select: none;
-}
-
-#container {
-    width: min(1000px, 100vw);
-    padding: 12px;
-}
-
-#topbar {
-    width: 100%;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    color: #c8ccd2;
-    font-size: 14px;
 }
 
 #game {
-    width: 100%;
+    width: min(96vw, 1100px);
+    height: auto;
+    aspect-ratio: 16 / 10;
+    background: #181818;
+    border: 2px solid #444;
     display: block;
-    background: #101318;
-    border: 1px solid #30353d;
-    touch-action: none;
 }
 
-#mobileControls {
-    display: none;
-}
-
-@media (max-width: 700px) {
-    #container {
-        padding: 5px;
-    }
-
-    #topbar {
-        font-size: 12px;
-    }
+#info {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 16px;
+    pointer-events: none;
 }
 </style>
 </head>
 
 <body>
 
-<div id="container">
+<div id="info">PONG</div>
 
-    <div id="topbar">
-        <div>PONG</div>
-        <div id="tokenDisplay">Tokens: 10</div>
-    </div>
-
-    <canvas
-        id="game"
-        width="960"
-        height="600">
-    </canvas>
-
-</div>
+<canvas id="game" width="960" height="600"></canvas>
 
 <script>
-"use strict";
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
 
-/* ============================================================
-   BASIC SETUP
-============================================================ */
+/* =========================================================
+   GAME SETTINGS
+========================================================= */
 
-const canvas =
-    document.getElementById("game");
+const WIDTH = 960;
+const HEIGHT = 600;
 
-const ctx =
-    canvas.getContext("2d");
+const PADDLE_WIDTH = 18;
+const PADDLE_HEIGHT = 110;
 
-const tokenDisplay =
-    document.getElementById("tokenDisplay");
+const PLAYER_X = 40;
+const AI_X = WIDTH - 58;
 
+const BALL_SIZE = 16;
 
-/* ============================================================
-   GAME CONSTANTS
-============================================================ */
+const PLAYER_SPEED = 520;
 
-const WIDTH =
-    960;
-
-const HEIGHT =
-    600;
-
-const PADDLE_WIDTH =
-    16;
-
-const PADDLE_HEIGHT =
-    100;
-
-const BALL_SIZE =
-    16;
-
-const PLAYER_X =
-    36;
-
-const AI_X =
-    WIDTH - 52;
-
-const STARTING_TOKENS =
-    10;
-
-const TARGETS =
-    [
-        5,
-        10,
-        15,
-        20,
-        25
-    ];
-
-const DIFFICULTIES =
-    [
-        "Slow",
-        "Normal",
-        "Hard"
-    ];
+const AI_SPEED = 390;
 
 
-/* ============================================================
-   SAVED TOKEN BALANCE
-============================================================ */
-
-let tokens =
-    Number(
-        localStorage.getItem(
-            "pong_tokens"
-        )
-    );
-
-if (
-    !Number.isFinite(tokens)
-) {
-    tokens =
-        STARTING_TOKENS;
-}
-
-if (
-    tokens < 0
-) {
-    tokens =
-        0;
-}
-
-saveTokens();
-
-
-function saveTokens() {
-
-    localStorage.setItem(
-        "pong_tokens",
-        String(tokens)
-    );
-
-    tokenDisplay.textContent =
-        "Tokens: " + tokens;
-
-}
-
-
-/* ============================================================
-   GAME STATE
-============================================================ */
-
-let screen =
-    "menu";
-
-let difficulty =
-    1;
-
-let menuSelection =
-    1;
-
-let round =
-    1;
-
-let playerScore =
-    0;
-
-let aiScore =
-    0;
-
-let paused =
-    false;
-
-let resultText =
-    "";
-
-let resultWon =
-    false;
-
-
-/* ============================================================
-   PLAYER
-============================================================ */
+/* =========================================================
+   GAME VARIABLES
+========================================================= */
 
 let playerY =
     HEIGHT / 2 -
     PADDLE_HEIGHT / 2;
 
-
-/* ============================================================
-   AI
-============================================================ */
-
 let aiY =
     HEIGHT / 2 -
     PADDLE_HEIGHT / 2;
 
+let playerScore = 0;
+let aiScore = 0;
 
-/* ============================================================
-   BALL
-============================================================ */
+let ballX =
+    WIDTH / 2;
 
-let ball = {
-    x: WIDTH / 2,
-    y: HEIGHT / 2,
-    vx: 0,
-    vy: 0
-};
-
-
-/* ============================================================
-   INPUT
-============================================================ */
-
-const keys =
-    {};
-
-let touchActive =
-    false;
-
-let touchY =
+let ballY =
     HEIGHT / 2;
 
+let ballVX = 0;
+let ballVY = 0;
 
-/* ============================================================
+let paused = false;
+
+let gameStarted = false;
+
+
+/* =========================================================
    KEYBOARD
-============================================================ */
+========================================================= */
+
+const keys = {};
+
 
 window.addEventListener(
     "keydown",
     function(event) {
 
+        keys[event.key] = true;
+
         if (
-            event.key === "ArrowUp" ||
-            event.key === "ArrowDown" ||
             event.key === " "
         ) {
+
             event.preventDefault();
+
+            paused = !paused;
+
         }
 
-        keys[event.key] =
-            true;
+        if (
+            event.key === "r" ||
+            event.key === "R"
+        ) {
 
-        keys[event.code] =
-            true;
+            resetGame();
 
-        handleKeyPress(event);
+        }
 
     }
 );
@@ -293,294 +145,48 @@ window.addEventListener(
     "keyup",
     function(event) {
 
-        keys[event.key] =
-            false;
-
-        keys[event.code] =
-            false;
+        keys[event.key] = false;
 
     }
 );
 
 
-/* ============================================================
-   KEY PRESS ACTIONS
-============================================================ */
+/* =========================================================
+   BALL RESET
+========================================================= */
 
-function handleKeyPress(event) {
+function resetBall(direction) {
 
-    if (
-        screen === "menu"
-    ) {
+    ballX =
+        WIDTH / 2;
 
-        if (
-            event.key === "ArrowUp" ||
-            event.key.toLowerCase() === "w"
-        ) {
-
-            menuSelection--;
-
-            if (
-                menuSelection < 0
-            ) {
-                menuSelection =
-                    2;
-            }
-
-        }
-
-        if (
-            event.key === "ArrowDown" ||
-            event.key.toLowerCase() === "s"
-        ) {
-
-            menuSelection++;
-
-            if (
-                menuSelection > 2
-            ) {
-                menuSelection =
-                    0;
-            }
-
-        }
-
-        if (
-            event.key === "Enter"
-        ) {
-
-            difficulty =
-                menuSelection;
-
-            round =
-                1;
-
-            startRound();
-
-        }
-
-        return;
-    }
+    ballY =
+        HEIGHT / 2;
 
 
-    if (
-        screen === "game"
-    ) {
+    const speed = 380;
 
-        if (
-            event.code === "Space"
-        ) {
-
-            paused =
-                !paused;
-
-        }
-
-        if (
-            event.key === "Escape"
-        ) {
-
-            returnToMenu();
-
-        }
-
-        return;
-    }
+    const angle =
+        Math.random() * 0.8 - 0.4;
 
 
-    if (
-        screen === "result"
-    ) {
+    ballVX =
+        speed * direction;
 
-        if (
-            event.key === "Enter"
-        ) {
-
-            if (
-                resultWon
-            ) {
-
-                if (
-                    round < 5
-                ) {
-
-                    round++;
-
-                    startRound();
-
-                } else {
-
-                    if (
-                        difficulty < 2
-                    ) {
-
-                        difficulty++;
-
-                        menuSelection =
-                            difficulty;
-
-                        round =
-                            1;
-
-                        screen =
-                            "menu";
-
-                    } else {
-
-                        round =
-                            1;
-
-                        difficulty =
-                            0;
-
-                        menuSelection =
-                            0;
-
-                        screen =
-                            "menu";
-
-                    }
-
-                }
-
-            } else {
-
-                startRound();
-
-            }
-
-        }
-
-        if (
-            event.key === "Escape"
-        ) {
-
-            returnToMenu();
-
-        }
-
-    }
+    ballVY =
+        speed * angle;
 
 }
 
 
-/* ============================================================
-   TOUCH INPUT
-============================================================ */
+/* =========================================================
+   RESET GAME
+========================================================= */
 
-canvas.addEventListener(
-    "pointerdown",
-    function(event) {
+function resetGame() {
 
-        if (
-            screen !== "game"
-        ) {
-            return;
-        }
-
-        touchActive =
-            true;
-
-        moveTouchPaddle(event);
-
-    }
-);
-
-
-canvas.addEventListener(
-    "pointermove",
-    function(event) {
-
-        if (
-            !touchActive ||
-            screen !== "game"
-        ) {
-            return;
-        }
-
-        moveTouchPaddle(event);
-
-    }
-);
-
-
-window.addEventListener(
-    "pointerup",
-    function() {
-
-        touchActive =
-            false;
-
-    }
-);
-
-
-function moveTouchPaddle(event) {
-
-    const rect =
-        canvas.getBoundingClientRect();
-
-    const scaleY =
-        HEIGHT /
-        rect.height;
-
-    touchY =
-        (
-            event.clientY -
-            rect.top
-        ) *
-        scaleY;
-
-}
-
-
-/* ============================================================
-   START ROUND
-============================================================ */
-
-function startRound() {
-
-    const cost =
-        round;
-
-    if (
-        tokens < cost
-    ) {
-
-        resultText =
-            "Not enough tokens.";
-
-        resultWon =
-            false;
-
-        screen =
-            "result";
-
-        return;
-    }
-
-
-    tokens -=
-        cost;
-
-    saveTokens();
-
-
-    playerScore =
-        0;
-
-    aiScore =
-        0;
-
-    paused =
-        false;
-
-    resultText =
-        "";
-
-    resultWon =
-        false;
-
+    playerScore = 0;
+    aiScore = 0;
 
     playerY =
         HEIGHT / 2 -
@@ -590,136 +196,26 @@ function startRound() {
         HEIGHT / 2 -
         PADDLE_HEIGHT / 2;
 
+    paused = false;
 
-    launchBall();
+    gameStarted = true;
 
-
-    screen =
-        "game";
-
-}
-
-
-/* ============================================================
-   BALL LAUNCH
-============================================================ */
-
-function launchBall() {
-
-    ball.x =
-        WIDTH / 2;
-
-    ball.y =
-        HEIGHT / 2;
-
-
-    const baseSpeed =
-        360 +
-        difficulty * 45 +
-        (round - 1) * 35;
-
-
-    const direction =
+    resetBall(
         Math.random() < 0.5
             ? -1
-            : 1;
-
-
-    const angle =
-        (
-            Math.random() *
-            0.8
-        ) -
-        0.4;
-
-
-    ball.vx =
-        direction *
-        baseSpeed;
-
-    ball.vy =
-        baseSpeed *
-        angle;
+            : 1
+    );
 
 }
 
 
-/* ============================================================
-   RETURN TO MENU
-============================================================ */
-
-function returnToMenu() {
-
-    screen =
-        "menu";
-
-    paused =
-        false;
-
-}
-
-
-/* ============================================================
-   END ROUND
-============================================================ */
-
-function finishRound(
-    won
-) {
-
-    resultWon =
-        won;
-
-
-    if (
-        won
-    ) {
-
-        const refund =
-            round;
-
-        tokens +=
-            refund;
-
-        saveTokens();
-
-
-        resultText =
-            "You won Round " +
-            round +
-            "! +" +
-            refund +
-            " token" +
-            (
-                refund === 1
-                    ? ""
-                    : "s"
-            );
-
-    } else {
-
-        resultText =
-            "You lost Round " +
-            round +
-            ".";
-
-    }
-
-
-    screen =
-        "result";
-
-}
-
-
-/* ============================================================
-   PLAYER MOVEMENT
-============================================================ */
+/* =========================================================
+   PLAYER
+========================================================= */
 
 function updatePlayer(dt) {
 
-    let direction =
-        0;
+    let movement = 0;
 
 
     if (
@@ -728,8 +224,7 @@ function updatePlayer(dt) {
         keys["ArrowUp"]
     ) {
 
-        direction -=
-            1;
+        movement -= 1;
 
     }
 
@@ -740,168 +235,144 @@ function updatePlayer(dt) {
         keys["ArrowDown"]
     ) {
 
-        direction +=
-            1;
+        movement += 1;
 
     }
-
-
-    if (
-        touchActive
-    ) {
-
-        const center =
-            playerY +
-            PADDLE_HEIGHT / 2;
-
-        const difference =
-            touchY -
-            center;
-
-        if (
-            Math.abs(difference) > 5
-        ) {
-
-            direction =
-                Math.sign(
-                    difference
-                );
-
-        }
-
-    }
-
-
-    const playerSpeed =
-        560;
 
 
     playerY +=
-        direction *
-        playerSpeed *
+        movement *
+        PLAYER_SPEED *
         dt;
 
 
-    playerY =
-        Math.max(
-            0,
-            Math.min(
-                HEIGHT -
-                PADDLE_HEIGHT,
-                playerY
-            )
-        );
-
-}
-
-
-/* ============================================================
-   AI MOVEMENT
-============================================================ */
-
-function updateAI(dt) {
-
-    const speeds =
-        [
-            250,
-            370,
-            510
-        ];
-
-
-    const aiSpeed =
-        speeds[
-            difficulty
-        ];
-
-
-    const target =
-        ball.y -
-        PADDLE_HEIGHT / 2;
-
-
-    const difference =
-        target -
-        aiY;
-
-
     if (
-        Math.abs(difference) > 2
+        playerY < 0
     ) {
 
-        aiY +=
-            Math.sign(
-                difference
-            ) *
-            Math.min(
-                Math.abs(difference),
-                aiSpeed * dt
-            );
+        playerY = 0;
 
     }
 
 
-    aiY =
-        Math.max(
-            0,
-            Math.min(
-                HEIGHT -
-                PADDLE_HEIGHT,
-                aiY
-            )
-        );
+    if (
+        playerY >
+        HEIGHT -
+        PADDLE_HEIGHT
+    ) {
+
+        playerY =
+            HEIGHT -
+            PADDLE_HEIGHT;
+
+    }
 
 }
 
 
-/* ============================================================
-   BALL MOVEMENT
-============================================================ */
+/* =========================================================
+   AI
+========================================================= */
+
+function updateAI(dt) {
+
+    const target =
+        ballY -
+        PADDLE_HEIGHT / 2;
+
+
+    if (
+        aiY < target
+    ) {
+
+        aiY +=
+            AI_SPEED *
+            dt;
+
+    }
+
+
+    if (
+        aiY > target
+    ) {
+
+        aiY -=
+            AI_SPEED *
+            dt;
+
+    }
+
+
+    if (
+        aiY < 0
+    ) {
+
+        aiY = 0;
+
+    }
+
+
+    if (
+        aiY >
+        HEIGHT -
+        PADDLE_HEIGHT
+    ) {
+
+        aiY =
+            HEIGHT -
+            PADDLE_HEIGHT;
+
+    }
+
+}
+
+
+/* =========================================================
+   BALL
+========================================================= */
 
 function updateBall(dt) {
 
-    ball.x +=
-        ball.vx *
+    ballX +=
+        ballVX *
         dt;
 
-    ball.y +=
-        ball.vy *
+    ballY +=
+        ballVY *
         dt;
 
 
-    /* TOP / BOTTOM */
+    /* TOP */
 
     if (
-        ball.y -
+        ballY -
         BALL_SIZE / 2 <=
         0
     ) {
 
-        ball.y =
+        ballY =
             BALL_SIZE / 2;
 
-        ball.vy =
-            Math.abs(
-                ball.vy
-            );
+        ballVY =
+            Math.abs(ballVY);
 
     }
 
 
+    /* BOTTOM */
+
     if (
-        ball.y +
+        ballY +
         BALL_SIZE / 2 >=
         HEIGHT
     ) {
 
-        ball.y =
+        ballY =
             HEIGHT -
             BALL_SIZE / 2;
 
-        ball.vy =
-            -Math.abs(
-                ball.vy
-            );
+        ballVY =
+            -Math.abs(ballVY);
 
     }
 
@@ -909,55 +380,58 @@ function updateBall(dt) {
     /* PLAYER PADDLE */
 
     if (
-        ball.vx < 0 &&
-        ball.x -
+        ballVX < 0 &&
+        ballX -
         BALL_SIZE / 2 <=
         PLAYER_X +
         PADDLE_WIDTH &&
-        ball.x +
+        ballX +
         BALL_SIZE / 2 >=
         PLAYER_X &&
-        ball.y >=
+        ballY >=
         playerY &&
-        ball.y <=
+        ballY <=
         playerY +
         PADDLE_HEIGHT
     ) {
 
-        ball.x =
+        ballX =
             PLAYER_X +
             PADDLE_WIDTH +
             BALL_SIZE / 2;
 
 
-        const paddleCenter =
-            playerY +
-            PADDLE_HEIGHT / 2;
-
-
-        const hitPosition =
+        const relative =
             (
-                ball.y -
-                paddleCenter
+                ballY -
+                (
+                    playerY +
+                    PADDLE_HEIGHT / 2
+                )
             ) /
             (
                 PADDLE_HEIGHT / 2
             );
 
 
-        increaseBallSpeed();
-
-
-        ball.vy =
-            hitPosition *
-            Math.abs(ball.vx) *
-            0.85;
-
-
-        ball.vx =
-            Math.abs(
-                ball.vx
+        const speed =
+            Math.min(
+                Math.hypot(
+                    ballVX,
+                    ballVY
+                ) * 1.05,
+                900
             );
+
+
+        ballVX =
+            speed;
+
+
+        ballVY =
+            relative *
+            speed *
+            0.8;
 
     }
 
@@ -965,194 +439,98 @@ function updateBall(dt) {
     /* AI PADDLE */
 
     if (
-        ball.vx > 0 &&
-        ball.x +
+        ballVX > 0 &&
+        ballX +
         BALL_SIZE / 2 >=
         AI_X &&
-        ball.x -
+        ballX -
         BALL_SIZE / 2 <=
         AI_X +
         PADDLE_WIDTH &&
-        ball.y >=
+        ballY >=
         aiY &&
-        ball.y <=
+        ballY <=
         aiY +
         PADDLE_HEIGHT
     ) {
 
-        ball.x =
+        ballX =
             AI_X -
             BALL_SIZE / 2;
 
 
-        const paddleCenter =
-            aiY +
-            PADDLE_HEIGHT / 2;
-
-
-        const hitPosition =
+        const relative =
             (
-                ball.y -
-                paddleCenter
+                ballY -
+                (
+                    aiY +
+                    PADDLE_HEIGHT / 2
+                )
             ) /
             (
                 PADDLE_HEIGHT / 2
             );
 
 
-        increaseBallSpeed();
-
-
-        ball.vy =
-            hitPosition *
-            Math.abs(ball.vx) *
-            0.85;
-
-
-        ball.vx =
-            -Math.abs(
-                ball.vx
+        const speed =
+            Math.min(
+                Math.hypot(
+                    ballVX,
+                    ballVY
+                ) * 1.05,
+                900
             );
+
+
+        ballVX =
+            -speed;
+
+
+        ballVY =
+            relative *
+            speed *
+            0.8;
 
     }
 
 
-    /* PLAYER MISSED */
+    /* PLAYER SCORED */
 
     if (
-        ball.x <
-        -BALL_SIZE
+        ballX < -30
     ) {
 
         aiScore++;
 
-
-        if (
-            aiScore >=
-            TARGETS[
-                round - 1
-            ]
-        ) {
-
-            finishRound(
-                false
-            );
-
-        } else {
-
-            launchBall();
-
-        }
+        resetBall(1);
 
     }
 
 
-    /* AI MISSED */
+    /* PLAYER SCORED */
 
     if (
-        ball.x >
-        WIDTH +
-        BALL_SIZE
+        ballX >
+        WIDTH + 30
     ) {
 
         playerScore++;
 
-
-        if (
-            playerScore >=
-            TARGETS[
-                round - 1
-            ]
-        ) {
-
-            finishRound(
-                true
-            );
-
-        } else {
-
-            launchBall();
-
-        }
+        resetBall(-1);
 
     }
 
 }
 
 
-/* ============================================================
-   BALL SPEED
-============================================================ */
-
-function increaseBallSpeed() {
-
-    const currentSpeed =
-        Math.sqrt(
-            ball.vx * ball.vx +
-            ball.vy * ball.vy
-        );
-
-
-    const maximum =
-        900;
-
-
-    const newSpeed =
-        Math.min(
-            currentSpeed * 1.045,
-            maximum
-        );
-
-
-    const angle =
-        Math.atan2(
-            ball.vy,
-            ball.vx
-        );
-
-
-    ball.vx =
-        Math.cos(angle) *
-        newSpeed;
-
-    ball.vy =
-        Math.sin(angle) *
-        newSpeed;
-
-}
-
-
-/* ============================================================
-   UPDATE
-============================================================ */
-
-function update(dt) {
-
-    if (
-        screen !== "game" ||
-        paused
-    ) {
-        return;
-    }
-
-
-    updatePlayer(dt);
-
-    updateAI(dt);
-
-    updateBall(dt);
-
-}
-
-
-/* ============================================================
+/* =========================================================
    DRAW BACKGROUND
-============================================================ */
+========================================================= */
 
 function drawBackground() {
 
     ctx.fillStyle =
-        "#101318";
+        "#181818";
 
     ctx.fillRect(
         0,
@@ -1163,17 +541,14 @@ function drawBackground() {
 
 
     ctx.strokeStyle =
-        "#30353d";
+        "#333333";
 
-    ctx.lineWidth =
-        2;
+    ctx.lineWidth = 2;
 
-    ctx.setLineDash(
-        [
-            10,
-            14
-        ]
-    );
+    ctx.setLineDash([
+        12,
+        14
+    ]);
 
 
     ctx.beginPath();
@@ -1190,16 +565,11 @@ function drawBackground() {
 
     ctx.stroke();
 
-
     ctx.setLineDash([]);
 
 
     ctx.strokeStyle =
-        "#1e232a";
-
-    ctx.lineWidth =
-        1;
-
+        "#444444";
 
     ctx.strokeRect(
         0,
@@ -1211,175 +581,19 @@ function drawBackground() {
 }
 
 
-/* ============================================================
-   DRAW TEXT
-============================================================ */
+/* =========================================================
+   DRAW
+========================================================= */
 
-function drawText(
-    value,
-    x,
-    y,
-    size,
-    align = "center"
-) {
-
-    ctx.fillStyle =
-        "#ffffff";
-
-    ctx.font =
-        "bold " +
-        size +
-        "px Arial";
-
-    ctx.textAlign =
-        align;
-
-    ctx.textBaseline =
-        "middle";
-
-    ctx.fillText(
-        value,
-        x,
-        y
-    );
-
-}
-
-
-/* ============================================================
-   DRAW MENU
-============================================================ */
-
-function drawMenu() {
+function draw() {
 
     drawBackground();
 
 
-    drawText(
-        "PONG",
-        WIDTH / 2,
-        100,
-        64
-    );
-
-
-    drawText(
-        "Choose difficulty",
-        WIDTH / 2,
-        160,
-        20
-    );
-
-
-    for (
-        let i = 0;
-        i < DIFFICULTIES.length;
-        i++
-    ) {
-
-        const y =
-            240 +
-            i * 70;
-
-
-        if (
-            i === menuSelection
-        ) {
-
-            ctx.fillStyle =
-                "#ffffff";
-
-            ctx.fillRect(
-                350,
-                y - 25,
-                260,
-                50
-            );
-
-
-            ctx.fillStyle =
-                "#101318";
-
-            ctx.font =
-                "bold 22px Arial";
-
-            ctx.textAlign =
-                "center";
-
-            ctx.textBaseline =
-                "middle";
-
-            ctx.fillText(
-                DIFFICULTIES[i],
-                WIDTH / 2,
-                y
-            );
-
-        } else {
-
-            ctx.strokeStyle =
-                "#3a4048";
-
-            ctx.strokeRect(
-                350,
-                y - 25,
-                260,
-                50
-            );
-
-
-            drawText(
-                DIFFICULTIES[i],
-                WIDTH / 2,
-                y,
-                22
-            );
-
-        }
-
-    }
-
-
-    drawText(
-        "W / S or ↑ / ↓",
-        WIDTH / 2,
-        485,
-        16
-    );
-
-
-    drawText(
-        "ENTER to start",
-        WIDTH / 2,
-        515,
-        16
-    );
-
-
-    drawText(
-        "Tokens: " + tokens,
-        WIDTH / 2,
-        555,
-        18
-    );
-
-}
-
-
-/* ============================================================
-   DRAW GAME
-============================================================ */
-
-function drawGame() {
-
-    drawBackground();
-
-
-    /* PADDLES */
+    /* PLAYER */
 
     ctx.fillStyle =
         "#ffffff";
-
 
     ctx.fillRect(
         PLAYER_X,
@@ -1388,6 +602,8 @@ function drawGame() {
         PADDLE_HEIGHT
     );
 
+
+    /* AI */
 
     ctx.fillRect(
         AI_X,
@@ -1400,9 +616,9 @@ function drawGame() {
     /* BALL */
 
     ctx.fillRect(
-        ball.x -
+        ballX -
         BALL_SIZE / 2,
-        ball.y -
+        ballY -
         BALL_SIZE / 2,
         BALL_SIZE,
         BALL_SIZE
@@ -1411,45 +627,33 @@ function drawGame() {
 
     /* SCORE */
 
-    drawText(
-        String(playerScore),
-        WIDTH / 2 - 75,
-        55,
-        44
+    ctx.font =
+        "bold 48px Arial";
+
+    ctx.textAlign =
+        "center";
+
+    ctx.fillText(
+        playerScore,
+        WIDTH / 2 - 70,
+        65
+    );
+
+    ctx.fillText(
+        aiScore,
+        WIDTH / 2 + 70,
+        65
     );
 
 
-    drawText(
-        String(aiScore),
-        WIDTH / 2 + 75,
-        55,
-        44
-    );
-
-
-    /* ROUND */
-
-    drawText(
-        "Round " +
-        round +
-        "  •  First to " +
-        TARGETS[
-            round - 1
-        ],
-        WIDTH / 2,
-        HEIGHT - 22,
-        15
-    );
-
-
-    /* PAUSE */
+    /* START MESSAGE */
 
     if (
-        paused
+        !gameStarted
     ) {
 
         ctx.fillStyle =
-            "rgba(0, 0, 0, 0.65)";
+            "rgba(0,0,0,0.7)";
 
         ctx.fillRect(
             0,
@@ -1459,19 +663,69 @@ function drawGame() {
         );
 
 
-        drawText(
+        ctx.fillStyle =
+            "#ffffff";
+
+        ctx.font =
+            "bold 40px Arial";
+
+        ctx.fillText(
+            "PONG",
+            WIDTH / 2,
+            HEIGHT / 2 - 50
+        );
+
+
+        ctx.font =
+            "20px Arial";
+
+        ctx.fillText(
+            "Press ENTER to start",
+            WIDTH / 2,
+            HEIGHT / 2 + 5
+        );
+
+
+        ctx.font =
+            "16px Arial";
+
+        ctx.fillText(
+            "W / S or ↑ / ↓ to move",
+            WIDTH / 2,
+            HEIGHT / 2 + 40
+        );
+
+    }
+
+
+    /* PAUSE */
+
+    if (
+        paused &&
+        gameStarted
+    ) {
+
+        ctx.fillStyle =
+            "rgba(0,0,0,0.65)";
+
+        ctx.fillRect(
+            0,
+            0,
+            WIDTH,
+            HEIGHT
+        );
+
+
+        ctx.fillStyle =
+            "#ffffff";
+
+        ctx.font =
+            "bold 40px Arial";
+
+        ctx.fillText(
             "PAUSED",
             WIDTH / 2,
-            HEIGHT / 2 - 20,
-            44
-        );
-
-
-        drawText(
-            "Press SPACE to continue",
-            WIDTH / 2,
-            HEIGHT / 2 + 30,
-            17
+            HEIGHT / 2
         );
 
     }
@@ -1479,183 +733,58 @@ function drawGame() {
 }
 
 
-/* ============================================================
-   DRAW RESULT
-============================================================ */
+/* =========================================================
+   UPDATE
+========================================================= */
 
-function drawResult() {
-
-    drawBackground();
-
-
-    drawText(
-        resultText,
-        WIDTH / 2,
-        190,
-        30
-    );
-
+function update(dt) {
 
     if (
-        resultWon
+        !gameStarted ||
+        paused
     ) {
 
-        if (
-            round < 5
-        ) {
-
-            drawText(
-                "ENTER = Play Again",
-                WIDTH / 2,
-                285,
-                19
-            );
-
-            drawText(
-                "ESC = Menu",
-                WIDTH / 2,
-                325,
-                17
-            );
-
-        } else {
-
-            if (
-                difficulty < 2
-            ) {
-
-                drawText(
-                    "ENTER = Next Difficulty",
-                    WIDTH / 2,
-                    285,
-                    19
-                );
-
-                drawText(
-                    "ESC = Menu",
-                    WIDTH / 2,
-                    325,
-                    17
-                );
-
-            } else {
-
-                drawText(
-                    "ENTER = Return to Menu",
-                    WIDTH / 2,
-                    285,
-                    19
-                );
-
-            }
-
-        }
-
-    } else {
-
-        if (
-            resultText ===
-            "Not enough tokens."
-        ) {
-
-            drawText(
-                "You need more tokens.",
-                WIDTH / 2,
-                285,
-                19
-            );
-
-            drawText(
-                "ENTER = Menu",
-                WIDTH / 2,
-                325,
-                17
-            );
-
-        } else {
-
-            drawText(
-                "ENTER = Play Again",
-                WIDTH / 2,
-                285,
-                19
-            );
-
-            drawText(
-                "ESC = Menu",
-                WIDTH / 2,
-                325,
-                17
-            );
-
-        }
+        return;
 
     }
 
 
-    drawText(
-        "Tokens: " + tokens,
-        WIDTH / 2,
-        410,
-        19
-    );
+    updatePlayer(dt);
+
+    updateAI(dt);
+
+    updateBall(dt);
 
 }
 
 
-/* ============================================================
-   DRAW
-============================================================ */
-
-function draw() {
-
-    if (
-        screen === "menu"
-    ) {
-
-        drawMenu();
-
-    } else if (
-        screen === "game"
-    ) {
-
-        drawGame();
-
-    } else {
-
-        drawResult();
-
-    }
-
-}
-
-
-/* ============================================================
-   GAME LOOP
-============================================================ */
+/* =========================================================
+   MAIN LOOP
+========================================================= */
 
 let previousTime =
     performance.now();
 
 
-function gameLoop(now) {
+function loop(currentTime) {
 
     let dt =
         (
-            now -
+            currentTime -
             previousTime
         ) / 1000;
 
 
     previousTime =
-        now;
+        currentTime;
 
 
     if (
         dt > 0.033
     ) {
-        dt =
-            0.033;
+
+        dt = 0.033;
+
     }
 
 
@@ -1665,17 +794,35 @@ function gameLoop(now) {
 
 
     requestAnimationFrame(
-        gameLoop
+        loop
     );
 
 }
 
 
-requestAnimationFrame(
-    gameLoop
+window.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (
+            event.key === "Enter" &&
+            !gameStarted
+        ) {
+
+            resetGame();
+
+        }
+
+    }
 );
 
-})();
+
+draw();
+
+requestAnimationFrame(
+    loop
+);
+
 </script>
 
 </body>
