@@ -1,625 +1,281 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Game Downloads</title>
-
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            min-height: 100vh;
-            background: #0b0f14;
-            color: #e8edf3;
-            font-family: Arial, Helvetica, sans-serif;
-        }
-
-        /* =========================
-           HEADER
-        ========================= */
-
-        header {
-            height: 70px;
-            padding: 0 32px;
-
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-
-            background: #0d1218;
-            border-bottom: 1px solid #29323d;
-        }
-
-        .logo {
-            font-size: 21px;
-            font-weight: bold;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Game Hub</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #0b0d12;
+    color: #ffffff;
+}
+
+header {
+    background: #11151d;
+    border-bottom: 1px solid #252b36;
+    padding: 20px;
+}
+
+.header-inner {
+    max-width: 1500px;
+    margin: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.logo {
+    font-size: 25px;
+    font-weight: bold;
+}
+
+nav {
+    display: flex;
+    gap: 10px;
+}
+
+nav a {
+    color: #ffffff;
+    text-decoration: none;
+    padding: 9px 14px;
+    border-radius: 7px;
+    background: #1a202b;
+}
+
+nav a:hover {
+    background: #252d3b;
+}
+
+.page {
+    max-width: 1500px;
+    margin: auto;
+    padding: 25px;
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr) 220px;
+    gap: 20px;
+    align-items: start;
+}
+
+.ads {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.ad {
+    min-height: 180px;
+    background: #11151d;
+    border: 1px solid #252b36;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #656d7a;
+    font-size: 13px;
+}
+
+.content {
+    min-width: 0;
+}
+
+.hero {
+    background: #11151d;
+    border: 1px solid #252b36;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 20px;
+}
+
+.hero h1 {
+    margin: 0 0 8px;
+    font-size: 32px;
+}
+
+.hero p {
+    margin: 0;
+    color: #aeb6c4;
+}
+
+.redeem {
+    background: #11151d;
+    border: 1px solid #252b36;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.redeem h2 {
+    margin-top: 0;
+}
+
+.redeem p {
+    color: #aeb6c4;
+}
+
+.redeem-row {
+    display: flex;
+    gap: 10px;
+}
+
+.redeem input {
+    flex: 1;
+    min-width: 0;
+    padding: 13px;
+    border-radius: 7px;
+    border: 1px solid #303846;
+    background: #0b0d12;
+    color: #ffffff;
+    outline: none;
+}
+
+.redeem button {
+    padding: 13px 18px;
+    border: 0;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #000000;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.redeem button:hover {
+    opacity: 0.85;
+}
+
+.result {
+    margin-top: 12px;
+    padding: 12px;
+    background: #0b0d12;
+    border-radius: 7px;
+    color: #aeb6c4;
+    display: none;
+    word-break: break-word;
+}
+
+.games {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.game {
+    background: #11151d;
+    border: 1px solid #252b36;
+    border-radius: 12px;
+    padding: 18px;
+}
+
+.game h3 {
+    margin-top: 0;
+}
+
+.game p {
+    color: #aeb6c4;
+    min-height: 45px;
+}
+
+.download {
+    display: inline-block;
+    padding: 10px 14px;
+    background: #ffffff;
+    color: #000000;
+    text-decoration: none;
+    border-radius: 7px;
+    font-weight: bold;
+}
+
+.download:hover {
+    opacity: 0.85;
+}
+
+footer {
+    max-width: 1500px;
+    margin: 30px auto 0;
+    padding: 20px 25px;
+    color: #666f7e;
+    text-align: center;
+    border-top: 1px solid #252b36;
+}
+
+@media (max-width: 1000px) {
+    .layout {
+        grid-template-columns: 1fr;
+    }
+
+    .ads {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .games {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 650px) {
+    .header-inner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .ads {
+        grid-template-columns: 1fr;
+    }
+
+    .games {
+        grid-template-columns: 1fr;
+    }
+
+    .redeem-row {
+        flex-direction: column;
+    }
+}
+</style>
 
-        nav {
-            display: flex;
-            gap: 25px;
-        }
-
-        nav a {
-            color: #aeb8c4;
-            text-decoration: none;
-            font-size: 14px;
-        }
-
-        nav a:hover {
-            color: white;
-        }
-
-        /* =========================
-           MAIN LAYOUT
-        ========================= */
-
-        .page {
-            width: 100%;
-            max-width: 1500px;
-            margin: auto;
-            padding: 25px;
-        }
-
-        .layout {
-            display: grid;
-
-            grid-template-columns:
-                220px
-                minmax(400px, 1fr)
-                220px;
-
-            gap: 20px;
-
-            align-items: start;
-        }
-
-        /* =========================
-           ADVERTISEMENTS
-        ========================= */
-
-        .ad-column {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .ad {
-            width: 100%;
-            height: 250px;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            text-align: center;
-
-            color: #626d79;
-
-            background: #11171e;
-            border: 1px solid #303a46;
-            border-radius: 8px;
-
-            font-size: 12px;
-        }
-
-        /* =========================
-           MAIN CONTENT
-        ========================= */
-
-        .content {
-            min-width: 0;
-        }
-
-        .hero {
-            padding: 35px;
-
-            margin-bottom: 20px;
-
-            background: #10161d;
-            border: 1px solid #303a46;
-            border-radius: 10px;
-        }
-
-        .hero h1 {
-            margin: 0 0 10px;
-
-            font-size: 40px;
-        }
-
-        .hero p {
-            margin: 0;
-
-            color: #9ba6b3;
-
-            line-height: 1.6;
-        }
-
-        /* =========================
-           DOWNLOAD SECTION
-        ========================= */
-
-        .downloads {
-            padding: 25px;
-
-            background: #0f151c;
-            border: 1px solid #303a46;
-            border-radius: 10px;
-        }
-
-        .downloads h2 {
-            margin: 0 0 20px;
-
-            font-size: 22px;
-        }
-
-        .game-list {
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-
-        .game {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-
-            gap: 20px;
-
-            padding: 18px;
-
-            background: #121921;
-            border: 1px solid #303a46;
-            border-radius: 8px;
-        }
-
-        .game-info {
-            min-width: 0;
-        }
-
-        .game h3 {
-            margin: 0 0 7px;
-
-            font-size: 17px;
-        }
-
-        .game p {
-            margin: 0;
-
-            color: #8995a3;
-
-            font-size: 13px;
-            line-height: 1.5;
-        }
-
-        /* =========================
-           DOWNLOAD BUTTON
-        ========================= */
-
-        .download-button {
-            flex-shrink: 0;
-
-            padding: 10px 17px;
-
-            background: #e8edf3;
-            color: #0b0f14;
-
-            border-radius: 6px;
-
-            text-decoration: none;
-
-            font-size: 13px;
-            font-weight: bold;
-        }
-
-        .download-button:hover {
-            background: white;
-        }
-
-        /* =========================
-           REDEEM AREA
-        ========================= */
-
-        .redeem {
-            margin-top: 20px;
-            padding: 20px;
-
-            background: #10161d;
-            border: 1px solid #303a46;
-            border-radius: 10px;
-        }
-
-        .redeem h2 {
-            margin: 0 0 8px;
-
-            font-size: 18px;
-        }
-
-        .redeem p {
-            margin: 0 0 15px;
-
-            color: #8995a3;
-
-            font-size: 13px;
-        }
-
-        .redeem-button {
-            display: inline-block;
-
-            padding: 9px 15px;
-
-            color: #e8edf3;
-
-            border: 1px solid #465362;
-            border-radius: 6px;
-
-            text-decoration: none;
-
-            font-size: 13px;
-        }
-
-        .redeem-button:hover {
-            background: #18212b;
-        }
-
-        /* =========================
-           FOOTER
-        ========================= */
-
-        footer {
-            margin-top: 30px;
-            padding: 20px;
-
-            border-top: 1px solid #28313b;
-
-            color: #697582;
-
-            text-align: center;
-
-            font-size: 12px;
-        }
-
-        /* =========================
-           TABLET
-        ========================= */
-
-        @media (max-width: 950px) {
-
-            .layout {
-                grid-template-columns: 1fr;
-            }
-
-            .ad-column {
-                display: grid;
-
-                grid-template-columns:
-                    repeat(3, 1fr);
-            }
-
-            .content {
-                order: 1;
-            }
-
-            .left-ads {
-                order: 2;
-            }
-
-            .right-ads {
-                order: 3;
-            }
-
-            .ad {
-                height: 150px;
-            }
-        }
-
-        /* =========================
-           MOBILE
-        ========================= */
-
-        @media (max-width: 600px) {
-
-            header {
-                padding: 0 18px;
-            }
-
-            nav {
-                gap: 12px;
-            }
-
-            nav a:nth-child(3) {
-                display: none;
-            }
-
-            .page {
-                padding: 14px;
-            }
-
-            .hero {
-                padding: 25px;
-            }
-
-            .hero h1 {
-                font-size: 30px;
-            }
-
-            .downloads {
-                padding: 20px;
-            }
-
-            .game {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .download-button {
-                width: 100%;
-                text-align: center;
-            }
-
-            .ad-column {
-                grid-template-columns: 1fr;
-            }
-
-            .ad {
-                height: 100px;
-            }
-        }
-    </style>
 </head>
 
 <body>
 
-    <!-- =========================
-         HEADER
-    ========================== -->
-
-    <header>
-
-        <div class="logo">
-            Game Downloads
-        </div>
-
-        <nav>
-
-            <a href="index.html">
-                Games
-            </a>
-
-            <a href="redeem.html">
-                Redeem Code
-            </a>
-
-            <a href="#">
-                About
-            </a>
-
-        </nav>
-
-    </header>
-
-
-    <!-- =========================
-         PAGE
-    ========================== -->
-
-    <main class="page">
-
-        <div class="layout">
-
-
-            <!-- =========================
-                 LEFT ADVERTISEMENTS
-            ========================== -->
-
-            <aside class="ad-column left-ads">
-
-                <div class="ad">
-                    ADVERTISEMENT<br>
-                    300 × 250
-                </div>
-
-                <div class="ad">
-                    ADVERTISEMENT<br>
-                    300 × 250
-                </div>
-
-                <div class="ad">
-                    ADVERTISEMENT<br>
-                    300 × 250
-                </div>
-
-            </aside>
-
-
-            <!-- =========================
-                 DOWNLOAD AREA
-            ========================== -->
-
-            <section class="content">
-
-
-                <!-- INTRO -->
-
-                <div class="hero">
-
-                    <h1>
-                        Game Downloads
-                    </h1>
-
-                    <p>
-                        Download games and play them directly on your computer.
-                        New games and updates will be added here.
-                    </p>
-
-                </div>
-
-
-                <!-- GAMES -->
-
-                <div class="downloads">
-
-                    <h2>
-                        Available Games
-                    </h2>
-
-
-                    <div class="game-list">
-
-
-                        <!-- GAME 1 -->
-
-                        <article class="game">
-
-                            <div class="game-info">
-
-                                <h3>
-                                    Game One
-                                </h3>
-
-                                <p>
-                                    Your first game description goes here.
-                                </p>
-
-                            </div>
-
-                            <a
-                                class="download-button"
-                                href="games/game-one.html"
-                                download
-                            >
-                                Download
-                            </a>
-
-                        </article>
-
-
-                        <!-- GAME 2 -->
-
-                        <article class="game">
-
-                            <div class="game-info">
-
-                                <h3>
-                                    Game Two
-                                </h3>
-
-                                <p>
-                                    Your second game description goes here.
-                                </p>
-
-                            </div>
-
-                            <a
-                                class="download-button"
-                                href="games/game-two.html"
-                                download
-                            >
-                                Download
-                            </a>
-
-                        </article>
-
-
-                        <!-- GAME 3 -->
-
-                        <article class="game">
-
-                            <div class="game-info">
-
-                                <h3>
-                                    Game Three
-                                </h3>
-
-                                <p>
-                                    Your third game description goes here.
-                                </p>
-
-                            </div>
-
-                            <a
-                                class="download-button"
-                                href="games/game-three.html"
-                                download
-                            >
-                                Download
-                            </a>
-
-                        </article>
-
-
-                    </div>
-
-                </div>
-
-
-                <!-- REDEMPTION -->
-
-                <div class="redeem">
-
-                    <h2>
-                        Have a Play Code?
-                    </h2>
-
-                    <p>
-                        Enter your code to restore your available plays.
-                    </p>
-
-                    <a
-                        class="redeem-button"
-                        href="redeem.html"
-                    >
-                        Redeem Code
-                    </a>
-
-                </div>
-
-
-            </section>
-
-
-            <!-- =========================
-                 RIGHT ADVERTISEMENTS
-            ========================== -->
-
-            <aside class="ad-column right-ads">
-
-                <div class="ad">
-                    ADVERTISEMENT<br>
-                    300 × 250
-                </div>
-
-                <div class="ad">
-                    ADVERTISEMENT<br>
-                    300 × 250
-                </div>
-
-                <div class="ad">
-                    ADVERTISEMENT<br>
-                    300 × 250
-                </div>
-
-            </aside>
-
-
-        </div>
-
-
-        <!-- FOOTER -->
-
-        <footer>
-
-            © 2026 Game Downloads
-
-        </footer>
-
-
-    </main>
-
-</body>
-</html>
+<header>
+    <div class="header-inner">
+        <div class="logo">Game Hub</div>
+
+```
+    <nav>
+        <a href="/">Home</a>
+        <a href="#games">Games</a>
+        <a href="#redeem">Redeem</a>
+    </nav>
+</div>
+```
+
+</header>
+
+<div class="page">
+
+```
+<div class="layout">
+
+    <aside class="ads">
+        <div class="ad">Advertisement</div>
+        <div class="ad">Advertisement</div>
+        <div class="ad">Advertisement</div>
+    </aside>
+
+    <main class="content">
+
+        <section class="hero">
+```
