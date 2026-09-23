@@ -169,6 +169,26 @@ nav a:hover {
     word-break: break-word;
 }
 
+.result-title {
+    color: #ffffff;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.output-code {
+    display: inline-block;
+    margin-top: 5px;
+    padding: 10px 12px;
+    background: #151a23;
+    border: 1px solid #303846;
+    border-radius: 7px;
+    color: #ffffff;
+    font-family: monospace;
+    font-size: 16px;
+    letter-spacing: 1px;
+    user-select: all;
+}
+
 .games {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -215,6 +235,7 @@ footer {
 }
 
 @media (max-width: 1000px) {
+
     .layout {
         grid-template-columns: 1fr;
     }
@@ -230,6 +251,7 @@ footer {
 }
 
 @media (max-width: 650px) {
+
     .header-inner {
         flex-direction: column;
         align-items: flex-start;
@@ -253,41 +275,72 @@ footer {
 <body>
 
 <header>
+
     <div class="header-inner">
-        <div class="logo">Game Hub</div>
+
+        <div class="logo">
+            Game Hub
+        </div>
 
         <nav>
             <a href="/">Home</a>
             <a href="#games">Games</a>
             <a href="#redeem">Redeem</a>
         </nav>
+
     </div>
+
 </header>
+
 
 <div class="page">
 
     <div class="layout">
 
+
         <aside class="ads">
-            <div class="ad">Advertisement</div>
-            <div class="ad">Advertisement</div>
-            <div class="ad">Advertisement</div>
+
+            <div class="ad">
+                Advertisement
+            </div>
+
+            <div class="ad">
+                Advertisement
+            </div>
+
+            <div class="ad">
+                Advertisement
+            </div>
+
         </aside>
+
 
         <main class="content">
 
+
             <section class="hero">
-                <h1>Game Hub</h1>
-                <p>Download and play games directly on your device.</p>
+
+                <h1>
+                    Game Hub
+                </h1>
+
+                <p>
+                    Download and play games directly on your device.
+                </p>
+
             </section>
+
 
             <section class="redeem" id="redeem">
 
-                <h2>Redeem Tokens</h2>
+                <h2>
+                    Redeem Tokens
+                </h2>
 
                 <p>
                     Enter your redemption code below.
                 </p>
+
 
                 <div class="redeem-row">
 
@@ -304,137 +357,234 @@ footer {
 
                 </div>
 
-                <div class="result" id="redeemResult"></div>
+
+                <div
+                    class="result"
+                    id="redeemResult">
+                </div>
 
             </section>
 
+
             <section id="games">
 
-                <h2>Games</h2>
+                <h2>
+                    Games
+                </h2>
+
 
                 <div class="games">
 
-                    <div class="game">
-                        <h3>Game One</h3>
-                        <p>Download and play Game One.</p>
-                        <a class="download" href="games/game-one.html">
-                            Download
-                        </a>
-                    </div>
 
                     <div class="game">
-                        <h3>Game Two</h3>
-                        <p>Download and play Game Two.</p>
-                        <a class="download" href="games/game-two.html">
+
+                        <h3>
+                            Game One
+                        </h3>
+
+                        <p>
+                            Download and play Game One.
+                        </p>
+
+                        <a
+                            class="download"
+                            href="games/game-one.html"
+                        >
                             Download
                         </a>
+
                     </div>
 
+
                     <div class="game">
-                        <h3>Game Three</h3>
-                        <p>Download and play Game Three.</p>
-                        <a class="download" href="games/game-three.html">
+
+                        <h3>
+                            Game Two
+                        </h3>
+
+                        <p>
+                            Download and play Game Two.
+                        </p>
+
+                        <a
+                            class="download"
+                            href="games/game-two.html"
+                        >
                             Download
                         </a>
+
                     </div>
+
+
+                    <div class="game">
+
+                        <h3>
+                            Game Three
+                        </h3>
+
+                        <p>
+                            Download and play Game Three.
+                        </p>
+
+                        <a
+                            class="download"
+                            href="games/game-three.html"
+                        >
+                            Download
+                        </a>
+
+                    </div>
+
 
                 </div>
 
             </section>
 
+
         </main>
 
+
         <aside class="ads">
-            <div class="ad">Advertisement</div>
-            <div class="ad">Advertisement</div>
-            <div class="ad">Advertisement</div>
+
+            <div class="ad">
+                Advertisement
+            </div>
+
+            <div class="ad">
+                Advertisement
+            </div>
+
+            <div class="ad">
+                Advertisement
+            </div>
+
         </aside>
+
 
     </div>
 
 </div>
 
+
 <footer>
     Game Hub
 </footer>
+
 
 <script>
 
 const API_URL =
     "https://mathshomework-api.imoleandcheese.workers.dev/";
 
+
 const redeemInput =
     document.getElementById("redeemInput");
 
+
 const redeemButton =
     document.getElementById("redeemButton");
+
 
 const redeemResult =
     document.getElementById("redeemResult");
 
 
-redeemButton.addEventListener("click", async function() {
+redeemButton.addEventListener(
+    "click",
+    async function() {
 
-    const code = redeemInput.value.trim();
+        const code =
+            redeemInput.value.trim();
 
-    if (!code) {
 
-        redeemResult.style.display = "block";
-        redeemResult.textContent =
-            "Please enter a redemption code.";
+        if (!code) {
 
-        return;
-    }
+            redeemResult.style.display =
+                "block";
 
-    redeemButton.disabled = true;
-
-    redeemResult.style.display = "block";
-    redeemResult.textContent =
-        "Contacting redemption server...";
-
-    try {
-
-        const response = await fetch(API_URL, {
-
-            method: "POST",
-
-            headers: {
-                "Content-Type": "application/json"
-            },
-
-            body: JSON.stringify({
-                code: code
-            })
-
-        });
-
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-
-            redeemResult.textContent =
-                data.error || "The redemption request failed.";
+            redeemResult.innerHTML =
+                "Please enter a redemption code.";
 
             return;
         }
 
+
+        redeemButton.disabled =
+            true;
+
+
+        redeemResult.style.display =
+            "block";
+
         redeemResult.textContent =
-            "API received your code: " + data.received;
+            "Contacting redemption server...";
 
-    } catch (error) {
 
-        redeemResult.textContent =
-            "Unable to contact the redemption server.";
+        try {
 
-        console.error(error);
+            const response =
+                await fetch(
+                    API_URL,
+                    {
+                        method: "POST",
 
-    } finally {
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
 
-        redeemButton.disabled = false;
+                        body:
+                            JSON.stringify({
+                                code: code
+                            })
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (
+                !response.ok ||
+                !data.success
+            ) {
+
+                redeemResult.textContent =
+                    data.error ||
+                    "The redemption request failed.";
+
+                return;
+            }
+
+
+            redeemResult.innerHTML =
+
+                '<div class="result-title">' +
+                'Your new code:' +
+                '</div>' +
+
+                '<div class="output-code">' +
+                data.outputCode +
+                '</div>';
+
+
+        } catch (error) {
+
+            redeemResult.textContent =
+                "Unable to contact the redemption server.";
+
+            console.error(error);
+
+        } finally {
+
+            redeemButton.disabled =
+                false;
+
+        }
 
     }
-
-});
+);
 
 </script>
 
