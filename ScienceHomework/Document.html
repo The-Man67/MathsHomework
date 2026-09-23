@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pong</title>
+
+<style>
+html,
+body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #090b0e;
+    color: white;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+#container {
+    width: min(1000px, 100vw);
+    padding: 12px;
+}
+
+#topbar {
+    width: 100%;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #c8ccd2;
+    font-size: 14px;
+}
+
+#game {
+    width: 100%;
+    display: block;
+    background: #101318;
+    border: 1px solid #30353d;
+    touch-action: none;
+}
+
+#mobileControls {
+    display: none;
+}
+
+@media (max-width: 700px) {
+    #container {
+        padding: 5px;
+    }
+
+    #topbar {
+        font-size: 12px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="container">
+
+    <div id="topbar">
+        <div>PONG</div>
+        <div id="tokenDisplay">Tokens: 10</div>
+    </div>
+
+    <canvas
+        id="game"
+        width="960"
+        height="600">
+    </canvas>
+
+</div>
+
+<script>
+"use strict";
+
+
+/* ============================================================
+   BASIC SETUP
+============================================================ */
+
+const canvas =
+    document.getElementById("game");
+
+const ctx =
+    canvas.getContext("2d");
+
+const tokenDisplay =
+    document.getElementById("tokenDisplay");
+
+
+/* ============================================================
+   GAME CONSTANTS
+============================================================ */
+
+const WIDTH =
+    960;
+
+const HEIGHT =
+    600;
+
+const PADDLE_WIDTH =
+    16;
+
+const PADDLE_HEIGHT =
+    100;
+
+const BALL_SIZE =
+    16;
+
+const PLAYER_X =
+    36;
+
+const AI_X =
+    WIDTH - 52;
+
+const STARTING_TOKENS =
+    10;
+
+const TARGETS =
+    [
+        5,
+        10,
+        15,
+        20,
+        25
+    ];
+
+const DIFFICULTIES =
+    [
+        "Slow",
+        "Normal",
+        "Hard"
+    ];
+
+
+/* ============================================================
+   SAVED TOKEN BALANCE
+============================================================ */
+
+let tokens =
+    Number(
+        localStorage.getItem(
+            "pong_tokens"
+        )
+    );
+
+if (
+    !Number.isFinite(tokens)
+) {
+    tokens =
+        STARTING_TOKENS;
+}
+
+if (
+    tokens < 0
+) {
+    tokens =
+        0;
+}
+
+saveTokens();
+
+
+function saveTokens() {
+
+    localStorage.setItem(
+        "pong_tokens",
+        String(tokens)
+    );
+
+    tokenDisplay.textContent =
+        "Tokens: " + tokens;
+
+}
+
+
+/* ============================================================
+   GAME STATE
+============================================================ */
+
+let screen =
+    "menu";
+
+let difficulty =
+    1;
+
+let menuSelection =
+    1;
+
+let round =
+    1;
+
+let playerScore =
+    0;
+
+let aiScore =
+    0;
+
+let paused =
+    false;
+
+let resultText =
+    "";
+
+let resultWon =
+    false;
+
+
+/* ============================================================
+   PLAYER
+============================================================ */
+
+let playerY =
+    HEIGHT / 2 -
+    PADDLE_HEIGHT / 2;
+
+
+/* ============================================================
+   AI
+============================================================ */
+
+let aiY =
+    HEIGHT / 2 -
+    PADDLE_HEIGHT / 2;
+
+
+/* ============================================================
+   BALL
+============================================================ */
+
+let ball = {
+    x: WIDTH / 2,
+    y: HEIGHT / 2,
+    vx: 0,
+    vy: 0
+};
+
+
+/* ============================================================
+   INPUT
+============================================================ */
+
+const keys =
+    {};
+
+let touchActive =
+    false;
+
+let touchY =
+    HEIGHT / 2;
+
+
+/* ============================================================
+   KEYBOARD
+============================================================ */
+
+window.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (
+            event.key === "ArrowUp" ||
+            event.key === "ArrowDown" ||
+            event.key === " "
+        ) {
+            event.preventDefault();
+        }
+
+        keys[event.key] =
+            true;
+
+        keys[event.code] =
+            true;
+
+        handleKeyPress(event);
+
+    }
+);
+
+
+window.addEventListener(
+    "keyup",
+    function(event) {
+
+        keys[event.key] =
+            false;
+
+        keys[event.code] =
+            false;
+
+    }
+);
+
+
+/* ============================================================
+   KEY PRESS ACTIONS
+============================================================ */
+
+function handleKeyPress(event) {
+
+    if (
+        screen === "menu"
+    ) {
+
+        if (
+            event.key === "ArrowUp" ||
+            event.key.toLowerCase() === "w"
+        ) {
+
+            menuSelection--;
+
+            if (
+                menuSelection < 0
+            ) {
+                menuSelection =
+                    2;
+            }
+
+        }
+
+        if (
+            event.key === "ArrowDown" ||
+            event.key.toLowerCase() === "s"
+        ) {
+
+            menuSelection++;
+
+            if (
+                menuSelection > 2
+            ) {
+                menuSelection =
+                    0;
+            }
+
+        }
+
+        if (
+            event.key === "Enter"
+        ) {
+
+            difficulty =
+                menuSelection;
+
+            round =
+                1;
+
+            startRound();
+
+        }
+
+        return;
+    }
+
+
+    if (
+        screen === "game"
+    ) {
+
+        if (
+            event.code === "Space"
+        ) {
+
+            paused =
+                !paused;
+
+        }
+
+        if (
+            event.key === "Escape"
+        ) {
+
+            returnToMenu();
+
+        }
+
+        return;
+    }
+
+
+    if (
+        screen === "result"
+    ) {
+
+        if (
+            event.key === "Enter"
+        ) {
+
+            if (
+                resultWon
+            ) {
+
+                if (
+                    round < 5
+                ) {
+
+                    round++;
+
+                    startRound();
+
+                } else {
+
+                    if (
+                        difficulty < 2
+                    ) {
+
+                        difficulty++;
+
+                        menuSelection =
+                            difficulty;
+
+                        round =
+                            1;
+
+                        screen =
+                            "menu";
+
+                    } else {
+
+                        round =
+                            1;
+
+                        difficulty =
+                            0;
+
+                        menuSelection =
+                            0;
+
+                        screen =
+                            "menu";
+
+                    }
+
+                }
+
+            } else {
+
+                startRound();
+
+            }
+
+        }
+
+        if (
+            event.key === "Escape"
+        ) {
+
+            returnToMenu();
+
+        }
+
+    }
+
+}
+
+
+/* ============================================================
+   TOUCH INPUT
+============================================================ */
+
+canvas.addEventListener(
+    "pointerdown",
+    function(event) {
+
+        if (
+            screen !== "game"
+        ) {
+            return;
+        }
+
+        touchActive =
+            true;
+
+        moveTouchPaddle(event);
+
+    }
+);
+
+
+canvas.addEventListener(
+    "pointermove",
+    function(event) {
+
+        if (
+            !touchActive ||
+            screen !== "game"
+        ) {
+            return;
+        }
+
+        moveTouchPaddle(event);
+
+    }
+);
+
+
+window.addEventListener(
+    "pointerup",
+    function() {
+
+        touchActive =
+            false;
+
+    }
+);
+
+
+function moveTouchPaddle(event) {
+
+    const rect =
+        canvas.getBoundingClientRect();
+
+    const scaleY =
+        HEIGHT /
+        rect.height;
+
+    touchY =
+        (
+            event.clientY -
+            rect.top
+        ) *
+        scaleY;
+
+}
+
+
+/* ============================================================
+   START ROUND
+============================================================ */
+
+function startRound() {
+
+    const cost =
+        round;
+
+    if (
+        tokens < cost
+    ) {
+
+        resultText =
+            "Not enough tokens.";
+
+        resultWon =
+            false;
+
+        screen =
+            "result";
+
+        return;
+    }
+
+
+    tokens -=
+        cost;
+
+    saveTokens();
+
+
+    playerScore =
+        0;
+
+    aiScore =
+        0;
+
+    paused =
+        false;
+
+    resultText =
+        "";
+
+    resultWon =
+        false;
+
+
+    playerY =
+        HEIGHT / 2 -
+        PADDLE_HEIGHT / 2;
+
+    aiY =
+        HEIGHT / 2 -
+        PADDLE_HEIGHT / 2;
+
+
+    launchBall();
+
+
+    screen =
+        "game";
+
+}
+
+
+/* ============================================================
+   BALL LAUNCH
+============================================================ */
+
+function launchBall() {
+
+    ball.x =
+        WIDTH / 2;
+
+    ball.y =
+        HEIGHT / 2;
+
+
+    const baseSpeed =
+        360 +
+        difficulty * 45 +
+        (round - 1) * 35;
+
+
+    const direction =
+        Math.random() < 0.5
+            ? -1
+            : 1;
+
+
+    const angle =
+        (
+            Math.random() *
+            0.8
+        ) -
+        0.4;
+
+
+    ball.vx =
+        direction *
+        baseSpeed;
+
+    ball.vy =
+        baseSpeed *
+        angle;
+
+}
+
+
+/* ============================================================
+   RETURN TO MENU
+============================================================ */
+
+function returnToMenu() {
+
+    screen =
+        "menu";
+
+    paused =
+        false;
+
+}
+
+
+/* ============================================================
+   END ROUND
+============================================================ */
+
+function finishRound(
+    won
+) {
+
+    resultWon =
+        won;
+
+
+    if (
+        won
+    ) {
+
+        const refund =
+            round;
+
+        tokens +=
+            refund;
+
+        saveTokens();
+
+
+        resultText =
+            "You won Round " +
+            round +
+            "! +" +
+            refund +
+            " token" +
+            (
+                refund === 1
+                    ? ""
+                    : "s"
+            );
+
+    } else {
+
+        resultText =
+            "You lost Round " +
+            round +
+            ".";
+
+    }
+
+
+    screen =
+        "result";
+
+}
+
+
+/* ============================================================
+   PLAYER MOVEMENT
+============================================================ */
+
+function updatePlayer(dt) {
+
+    let direction =
+        0;
+
+
+    if (
+        keys["w"] ||
+        keys["W"] ||
+        keys["ArrowUp"]
+    ) {
+
+        direction -=
+            1;
+
+    }
+
+
+    if (
+        keys["s"] ||
+        keys["S"] ||
+        keys["ArrowDown"]
+    ) {
+
+        direction +=
+            1;
+
+    }
+
+
+    if (
+        touchActive
+    ) {
+
+        const center =
+            playerY +
+            PADDLE_HEIGHT / 2;
+
+        const difference =
+            touchY -
+            center;
+
+        if (
+            Math.abs(difference) > 5
+        ) {
+
+            direction =
+                Math.sign(
+                    difference
+                );
+
+        }
+
+    }
+
+
+    const playerSpeed =
+        560;
+
+
+    playerY +=
+        direction *
+        playerSpeed *
+        dt;
+
+
+    playerY =
+        Math.max(
+            0,
+            Math.min(
+                HEIGHT -
+                PADDLE_HEIGHT,
+                playerY
+            )
+        );
+
+}
+
+
+/* ============================================================
+   AI MOVEMENT
+============================================================ */
+
+function updateAI(dt) {
+
+    const speeds =
+        [
+            250,
+            370,
+            510
+        ];
+
+
+    const aiSpeed =
+        speeds[
+            difficulty
+        ];
+
+
+    const target =
+        ball.y -
+        PADDLE_HEIGHT / 2;
+
+
+    const difference =
+        target -
+        aiY;
+
+
+    if (
+        Math.abs(difference) > 2
+    ) {
+
+        aiY +=
+            Math.sign(
+                difference
+            ) *
+            Math.min(
+                Math.abs(difference),
+                aiSpeed * dt
+            );
+
+    }
+
+
+    aiY =
+        Math.max(
+            0,
+            Math.min(
+                HEIGHT -
+                PADDLE_HEIGHT,
+                aiY
+            )
+        );
+
+}
+
+
+/* ============================================================
+   BALL MOVEMENT
+============================================================ */
+
+function updateBall(dt) {
+
+    ball.x +=
+        ball.vx *
+        dt;
+
+    ball.y +=
+        ball.vy *
+        dt;
+
+
+    /* TOP / BOTTOM */
+
+    if (
+        ball.y -
+        BALL_SIZE / 2 <=
+        0
+    ) {
+
+        ball.y =
+            BALL_SIZE / 2;
+
+        ball.vy =
+            Math.abs(
+                ball.vy
+            );
+
+    }
+
+
+    if (
+        ball.y +
+        BALL_SIZE / 2 >=
+        HEIGHT
+    ) {
+
+        ball.y =
+            HEIGHT -
+            BALL_SIZE / 2;
+
+        ball.vy =
+            -Math.abs(
+                ball.vy
+            );
+
+    }
+
+
+    /* PLAYER PADDLE */
+
+    if (
+        ball.vx < 0 &&
+        ball.x -
+        BALL_SIZE / 2 <=
+        PLAYER_X +
+        PADDLE_WIDTH &&
+        ball.x +
+        BALL_SIZE / 2 >=
+        PLAYER_X &&
+        ball.y >=
+        playerY &&
+        ball.y <=
+        playerY +
+        PADDLE_HEIGHT
+    ) {
+
+        ball.x =
+            PLAYER_X +
+            PADDLE_WIDTH +
+            BALL_SIZE / 2;
+
+
+        const paddleCenter =
+            playerY +
+            PADDLE_HEIGHT / 2;
+
+
+        const hitPosition =
+            (
+                ball.y -
+                paddleCenter
+            ) /
+            (
+                PADDLE_HEIGHT / 2
+            );
+
+
+        increaseBallSpeed();
+
+
+        ball.vy =
+            hitPosition *
+            Math.abs(ball.vx) *
+            0.85;
+
+
+        ball.vx =
+            Math.abs(
+                ball.vx
+            );
+
+    }
+
+
+    /* AI PADDLE */
+
+    if (
+        ball.vx > 0 &&
+        ball.x +
+        BALL_SIZE / 2 >=
+        AI_X &&
+        ball.x -
+        BALL_SIZE / 2 <=
+        AI_X +
+        PADDLE_WIDTH &&
+        ball.y >=
+        aiY &&
+        ball.y <=
+        aiY +
+        PADDLE_HEIGHT
+    ) {
+
+        ball.x =
+            AI_X -
+            BALL_SIZE / 2;
+
+
+        const paddleCenter =
+            aiY +
+            PADDLE_HEIGHT / 2;
+
+
+        const hitPosition =
+            (
+                ball.y -
+                paddleCenter
+            ) /
+            (
+                PADDLE_HEIGHT / 2
+            );
+
+
+        increaseBallSpeed();
+
+
+        ball.vy =
+            hitPosition *
+            Math.abs(ball.vx) *
+            0.85;
+
+
+        ball.vx =
+            -Math.abs(
+                ball.vx
+            );
+
+    }
+
+
+    /* PLAYER MISSED */
+
+    if (
+        ball.x <
+        -BALL_SIZE
+    ) {
+
+        aiScore++;
+
+
+        if (
+            aiScore >=
+            TARGETS[
+                round - 1
+            ]
+        ) {
+
+            finishRound(
+                false
+            );
+
+        } else {
+
+            launchBall();
+
+        }
+
+    }
+
+
+    /* AI MISSED */
+
+    if (
+        ball.x >
+        WIDTH +
+        BALL_SIZE
+    ) {
+
+        playerScore++;
+
+
+        if (
+            playerScore >=
+            TARGETS[
+                round - 1
+            ]
+        ) {
+
+            finishRound(
+                true
+            );
+
+        } else {
+
+            launchBall();
+
+        }
+
+    }
+
+}
+
+
+/* ============================================================
+   BALL SPEED
+============================================================ */
+
+function increaseBallSpeed() {
+
+    const currentSpeed =
+        Math.sqrt(
+            ball.vx * ball.vx +
+            ball.vy * ball.vy
+        );
+
+
+    const maximum =
+        900;
+
+
+    const newSpeed =
+        Math.min(
+            currentSpeed * 1.045,
+            maximum
+        );
+
+
+    const angle =
+        Math.atan2(
+            ball.vy,
+            ball.vx
+        );
+
+
+    ball.vx =
+        Math.cos(angle) *
+        newSpeed;
+
+    ball.vy =
+        Math.sin(angle) *
+        newSpeed;
+
+}
+
+
+/* ============================================================
+   UPDATE
+============================================================ */
+
+function update(dt) {
+
+    if (
+        screen !== "game" ||
+        paused
+    ) {
+        return;
+    }
+
+
+    updatePlayer(dt);
+
+    updateAI(dt);
+
+    updateBall(dt);
+
+}
+
+
+/* ============================================================
+   DRAW BACKGROUND
+============================================================ */
+
+function drawBackground() {
+
+    ctx.fillStyle =
+        "#101318";
+
+    ctx.fillRect(
+        0,
+        0,
+        WIDTH,
+        HEIGHT
+    );
+
+
+    ctx.strokeStyle =
+        "#30353d";
+
+    ctx.lineWidth =
+        2;
+
+    ctx.setLineDash(
+        [
+            10,
+            14
+        ]
+    );
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        WIDTH / 2,
+        0
+    );
+
+    ctx.lineTo(
+        WIDTH / 2,
+        HEIGHT
+    );
+
+    ctx.stroke();
+
+
+    ctx.setLineDash([]);
+
+
+    ctx.strokeStyle =
+        "#1e232a";
+
+    ctx.lineWidth =
+        1;
+
+
+    ctx.strokeRect(
+        0,
+        0,
+        WIDTH,
+        HEIGHT
+    );
+
+}
+
+
+/* ============================================================
+   DRAW TEXT
+============================================================ */
+
+function drawText(
+    value,
+    x,
+    y,
+    size,
+    align = "center"
+) {
+
+    ctx.fillStyle =
+        "#ffffff";
+
+    ctx.font =
+        "bold " +
+        size +
+        "px Arial";
+
+    ctx.textAlign =
+        align;
+
+    ctx.textBaseline =
+        "middle";
+
+    ctx.fillText(
+        value,
+        x,
+        y
+    );
+
+}
+
+
+/* ============================================================
+   DRAW MENU
+============================================================ */
+
+function drawMenu() {
+
+    drawBackground();
+
+
+    drawText(
+        "PONG",
+        WIDTH / 2,
+        100,
+        64
+    );
+
+
+    drawText(
+        "Choose difficulty",
+        WIDTH / 2,
+        160,
+        20
+    );
+
+
+    for (
+        let i = 0;
+        i < DIFFICULTIES.length;
+        i++
+    ) {
+
+        const y =
+            240 +
+            i * 70;
+
+
+        if (
+            i === menuSelection
+        ) {
+
+            ctx.fillStyle =
+                "#ffffff";
+
+            ctx.fillRect(
+                350,
+                y - 25,
+                260,
+                50
+            );
+
+
+            ctx.fillStyle =
+                "#101318";
+
+            ctx.font =
+                "bold 22px Arial";
+
+            ctx.textAlign =
+                "center";
+
+            ctx.textBaseline =
+                "middle";
+
+            ctx.fillText(
+                DIFFICULTIES[i],
+                WIDTH / 2,
+                y
+            );
+
+        } else {
+
+            ctx.strokeStyle =
+                "#3a4048";
+
+            ctx.strokeRect(
+                350,
+                y - 25,
+                260,
+                50
+            );
+
+
+            drawText(
+                DIFFICULTIES[i],
+                WIDTH / 2,
+                y,
+                22
+            );
+
+        }
+
+    }
+
+
+    drawText(
+        "W / S or ↑ / ↓",
+        WIDTH / 2,
+        485,
+        16
+    );
+
+
+    drawText(
+        "ENTER to start",
+        WIDTH / 2,
+        515,
+        16
+    );
+
+
+    drawText(
+        "Tokens: " + tokens,
+        WIDTH / 2,
+        555,
+        18
+    );
+
+}
+
+
+/* ============================================================
+   DRAW GAME
+============================================================ */
+
+function drawGame() {
+
+    drawBackground();
+
+
+    /* PADDLES */
+
+    ctx.fillStyle =
+        "#ffffff";
+
+
+    ctx.fillRect(
+        PLAYER_X,
+        playerY,
+        PADDLE_WIDTH,
+        PADDLE_HEIGHT
+    );
+
+
+    ctx.fillRect(
+        AI_X,
+        aiY,
+        PADDLE_WIDTH,
+        PADDLE_HEIGHT
+    );
+
+
+    /* BALL */
+
+    ctx.fillRect(
+        ball.x -
+        BALL_SIZE / 2,
+        ball.y -
+        BALL_SIZE / 2,
+        BALL_SIZE,
+        BALL_SIZE
+    );
+
+
+    /* SCORE */
+
+    drawText(
+        String(playerScore),
+        WIDTH / 2 - 75,
+        55,
+        44
+    );
+
+
+    drawText(
+        String(aiScore),
+        WIDTH / 2 + 75,
+        55,
+        44
+    );
+
+
+    /* ROUND */
+
+    drawText(
+        "Round " +
+        round +
+        "  •  First to " +
+        TARGETS[
+            round - 1
+        ],
+        WIDTH / 2,
+        HEIGHT - 22,
+        15
+    );
+
+
+    /* PAUSE */
+
+    if (
+        paused
+    ) {
+
+        ctx.fillStyle =
+            "rgba(0, 0, 0, 0.65)";
+
+        ctx.fillRect(
+            0,
+            0,
+            WIDTH,
+            HEIGHT
+        );
+
+
+        drawText(
+            "PAUSED",
+            WIDTH / 2,
+            HEIGHT / 2 - 20,
+            44
+        );
+
+
+        drawText(
+            "Press SPACE to continue",
+            WIDTH / 2,
+            HEIGHT / 2 + 30,
+            17
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   DRAW RESULT
+============================================================ */
+
+function drawResult() {
+
+    drawBackground();
+
+
+    drawText(
+        resultText,
+        WIDTH / 2,
+        190,
+        30
+    );
+
+
+    if (
+        resultWon
+    ) {
+
+        if (
+            round < 5
+        ) {
+
+            drawText(
+                "ENTER = Play Again",
+                WIDTH / 2,
+                285,
+                19
+            );
+
+            drawText(
+                "ESC = Menu",
+                WIDTH / 2,
+                325,
+                17
+            );
+
+        } else {
+
+            if (
+                difficulty < 2
+            ) {
+
+                drawText(
+                    "ENTER = Next Difficulty",
+                    WIDTH / 2,
+                    285,
+                    19
+                );
+
+                drawText(
+                    "ESC = Menu",
+                    WIDTH / 2,
+                    325,
+                    17
+                );
+
+            } else {
+
+                drawText(
+                    "ENTER = Return to Menu",
+                    WIDTH / 2,
+                    285,
+                    19
+                );
+
+            }
+
+        }
+
+    } else {
+
+        if (
+            resultText ===
+            "Not enough tokens."
+        ) {
+
+            drawText(
+                "You need more tokens.",
+                WIDTH / 2,
+                285,
+                19
+            );
+
+            drawText(
+                "ENTER = Menu",
+                WIDTH / 2,
+                325,
+                17
+            );
+
+        } else {
+
+            drawText(
+                "ENTER = Play Again",
+                WIDTH / 2,
+                285,
+                19
+            );
+
+            drawText(
+                "ESC = Menu",
+                WIDTH / 2,
+                325,
+                17
+            );
+
+        }
+
+    }
+
+
+    drawText(
+        "Tokens: " + tokens,
+        WIDTH / 2,
+        410,
+        19
+    );
+
+}
+
+
+/* ============================================================
+   DRAW
+============================================================ */
+
+function draw() {
+
+    if (
+        screen === "menu"
+    ) {
+
+        drawMenu();
+
+    } else if (
+        screen === "game"
+    ) {
+
+        drawGame();
+
+    } else {
+
+        drawResult();
+
+    }
+
+}
+
+
+/* ============================================================
+   GAME LOOP
+============================================================ */
+
+let previousTime =
+    performance.now();
+
+
+function gameLoop(now) {
+
+    let dt =
+        (
+            now -
+            previousTime
+        ) / 1000;
+
+
+    previousTime =
+        now;
+
+
+    if (
+        dt > 0.033
+    ) {
+        dt =
+            0.033;
+    }
+
+
+    update(dt);
+
+    draw();
+
+
+    requestAnimationFrame(
+        gameLoop
+    );
+
+}
+
+
+requestAnimationFrame(
+    gameLoop
+);
+
+})();
+</script>
+
+</body>
+</html>
