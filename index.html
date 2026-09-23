@@ -1,588 +1,1355 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
 
-<title>Game Hub</title>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-<style>
-* {
-    box-sizing: border-box;
-}
+    <title>Maths Homework</title>
 
-body {
-    margin: 0;
-    font-family: Arial, Helvetica, sans-serif;
-    background: #0b0d12;
-    color: #ffffff;
-}
+    <style>
+        * {
+            box-sizing: border-box;
+        }
 
-header {
-    background: #11151d;
-    border-bottom: 1px solid #252b36;
-    padding: 20px;
-}
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100%;
+        }
 
-.header-inner {
-    max-width: 1500px;
-    margin: auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-}
+        body {
+            background:
+                radial-gradient(
+                    circle at top,
+                    #171b22 0%,
+                    #0c0e12 45%,
+                    #08090c 100%
+                );
 
-.logo {
-    font-size: 25px;
-    font-weight: bold;
-}
+            color: #f1f3f5;
 
-nav {
-    display: flex;
-    gap: 10px;
-}
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
 
-nav a {
-    color: #ffffff;
-    text-decoration: none;
-    padding: 9px 14px;
-    border-radius: 7px;
-    background: #1a202b;
-}
+            min-height: 100vh;
+        }
 
-nav a:hover {
-    background: #252d3b;
-}
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
 
-.page {
-    max-width: 1500px;
-    margin: auto;
-    padding: 25px;
-}
+        button,
+        input {
+            font: inherit;
+        }
 
-.layout {
-    display: grid;
-    grid-template-columns: 220px minmax(0, 1fr) 220px;
-    gap: 20px;
-    align-items: start;
-}
+        .page {
+            min-height: 100vh;
 
-.ads {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
+            display: flex;
+            flex-direction: column;
+        }
 
-.ad {
-    min-height: 180px;
-    background: #11151d;
-    border: 1px solid #252b36;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #656d7a;
-    font-size: 13px;
-}
+        /* ==============================
+           HEADER
+        ============================== */
 
-.content {
-    min-width: 0;
-}
+        header {
+            width: 100%;
 
-.hero {
-    background: #11151d;
-    border: 1px solid #252b36;
-    border-radius: 12px;
-    padding: 25px;
-    margin-bottom: 20px;
-}
+            border-bottom:
+                1px solid #242932;
 
-.hero h1 {
-    margin: 0 0 8px;
-    font-size: 32px;
-}
+            background:
+                rgba(8, 10, 14, 0.94);
 
-.hero p {
-    margin: 0;
-    color: #aeb6c4;
-}
+            backdrop-filter:
+                blur(8px);
 
-.redeem {
-    background: #11151d;
-    border: 1px solid #252b36;
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
 
-.redeem h2 {
-    margin-top: 0;
-}
+        .header-inner {
+            width: min(
+                1400px,
+                calc(100% - 32px)
+            );
 
-.redeem p {
-    color: #aeb6c4;
-}
+            margin: 0 auto;
 
-.redeem-row {
-    display: flex;
-    gap: 10px;
-}
+            min-height: 68px;
 
-.redeem input {
-    flex: 1;
-    min-width: 0;
-    padding: 13px;
-    border-radius: 7px;
-    border: 1px solid #303846;
-    background: #0b0d12;
-    color: #ffffff;
-    outline: none;
-}
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
 
-.redeem button {
-    padding: 13px 18px;
-    border: 0;
-    border-radius: 7px;
-    background: #ffffff;
-    color: #000000;
-    font-weight: bold;
-    cursor: pointer;
-}
+            gap: 20px;
+        }
 
-.redeem button:hover {
-    opacity: 0.85;
-}
+        .brand {
+            font-size: 21px;
+            font-weight: 700;
 
-.redeem button:disabled {
-    opacity: 0.5;
-    cursor: wait;
-}
+            letter-spacing: 0.02em;
+        }
 
-.result {
-    margin-top: 12px;
-    padding: 12px;
-    background: #0b0d12;
-    border-radius: 7px;
-    color: #aeb6c4;
-    display: none;
-    word-break: break-word;
-}
+        nav {
+            display: flex;
+            gap: 24px;
+        }
 
-.result-title {
-    color: #ffffff;
-    font-weight: bold;
-    margin-bottom: 8px;
-}
+        nav a {
+            color: #9da5b0;
 
-.output-code {
-    display: inline-block;
-    margin-top: 5px;
-    padding: 10px 12px;
-    background: #151a23;
-    border: 1px solid #303846;
-    border-radius: 7px;
-    color: #ffffff;
-    font-family: monospace;
-    font-size: 16px;
-    letter-spacing: 1px;
-    user-select: all;
-}
+            font-size: 14px;
 
-.games {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
-}
+            transition:
+                color 0.18s ease;
+        }
 
-.game {
-    background: #11151d;
-    border: 1px solid #252b36;
-    border-radius: 12px;
-    padding: 18px;
-}
+        nav a:hover {
+            color: #ffffff;
+        }
 
-.game h3 {
-    margin-top: 0;
-}
+        /* ==============================
+           MAIN LAYOUT
+        ============================== */
 
-.game p {
-    color: #aeb6c4;
-    min-height: 45px;
-}
+        main {
+            width: min(
+                1400px,
+                calc(100% - 32px)
+            );
 
-.download {
-    display: inline-block;
-    padding: 10px 14px;
-    background: #ffffff;
-    color: #000000;
-    text-decoration: none;
-    border-radius: 7px;
-    font-weight: bold;
-}
+            margin: 0 auto;
 
-.download:hover {
-    opacity: 0.85;
-}
+            flex: 1;
 
-footer {
-    max-width: 1500px;
-    margin: 30px auto 0;
-    padding: 20px 25px;
-    color: #666f7e;
-    text-align: center;
-    border-top: 1px solid #252b36;
-}
+            display: grid;
 
-@media (max-width: 1000px) {
+            grid-template-columns:
+                180px
+                minmax(0, 1fr)
+                180px;
 
-    .layout {
-        grid-template-columns: 1fr;
-    }
+            gap: 22px;
 
-    .ads {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-    }
+            padding:
+                28px 0 40px;
+        }
 
-    .games {
-        grid-template-columns: 1fr 1fr;
-    }
-}
+        .side-column {
+            display: flex;
+            flex-direction: column;
 
-@media (max-width: 650px) {
+            gap: 18px;
+        }
 
-    .header-inner {
-        flex-direction: column;
-        align-items: flex-start;
-    }
+        .ad-box {
+            width: 100%;
 
-    .ads {
-        grid-template-columns: 1fr;
-    }
+            min-height: 180px;
 
-    .games {
-        grid-template-columns: 1fr;
-    }
+            background:
+                #101319;
 
-    .redeem-row {
-        flex-direction: column;
-    }
-}
-</style>
+            border:
+                1px solid #232a33;
+
+            border-radius:
+                8px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            color: #59616c;
+
+            font-size: 11px;
+
+            text-align: center;
+
+            overflow: hidden;
+        }
+
+        .centre {
+            min-width: 0;
+        }
+
+        /* ==============================
+           INTRO
+        ============================== */
+
+        .hero {
+            padding:
+                18px 0 26px;
+        }
+
+        .hero h1 {
+            margin: 0 0 8px;
+
+            font-size:
+                clamp(
+                    28px,
+                    4vw,
+                    42px
+                );
+
+            line-height: 1.08;
+        }
+
+        .hero p {
+            margin: 0;
+
+            color: #89919c;
+
+            font-size: 15px;
+
+            line-height: 1.6;
+
+            max-width: 720px;
+        }
+
+        /* ==============================
+           CARDS
+        ============================== */
+
+        .panel {
+            background:
+                rgba(15, 18, 23, 0.96);
+
+            border:
+                1px solid #252c35;
+
+            border-radius:
+                10px;
+
+            overflow: hidden;
+
+            margin-bottom: 20px;
+
+            box-shadow:
+                0 8px 30px
+                rgba(0, 0, 0, 0.18);
+        }
+
+        .panel-header {
+            padding:
+                16px 18px;
+
+            border-bottom:
+                1px solid #252c35;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: space-between;
+
+            gap: 15px;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+
+            font-size: 18px;
+        }
+
+        .panel-header span {
+            color: #777f8b;
+
+            font-size: 12px;
+        }
+
+        .panel-body {
+            padding: 18px;
+        }
+
+        /* ==============================
+           GAME CARDS
+        ============================== */
+
+        .games {
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(
+                        210px,
+                        1fr
+                    )
+                );
+
+            gap: 14px;
+        }
+
+        .game-card {
+            min-height: 150px;
+
+            border:
+                1px solid #2a313b;
+
+            background:
+                #11151b;
+
+            border-radius:
+                8px;
+
+            padding: 16px;
+
+            display: flex;
+            flex-direction: column;
+
+            justify-content: space-between;
+
+            gap: 16px;
+
+            transition:
+                border-color 0.18s ease,
+                transform 0.18s ease,
+                background 0.18s ease;
+        }
+
+        .game-card:hover {
+            border-color:
+                #414a56;
+
+            background:
+                #151a21;
+
+            transform:
+                translateY(-1px);
+        }
+
+        .game-number {
+            color: #68717d;
+
+            font-size: 11px;
+
+            letter-spacing:
+                0.08em;
+
+            text-transform:
+                uppercase;
+        }
+
+        .game-card h3 {
+            margin:
+                7px 0 5px;
+
+            font-size: 17px;
+        }
+
+        .game-card p {
+            margin: 0;
+
+            color: #7f8792;
+
+            font-size: 13px;
+
+            line-height: 1.45;
+        }
+
+        .game-button {
+            width: 100%;
+
+            border:
+                1px solid #3a424c;
+
+            background:
+                #20262e;
+
+            color: #ffffff;
+
+            padding:
+                10px 12px;
+
+            border-radius:
+                6px;
+
+            cursor: pointer;
+
+            text-align: center;
+
+            transition:
+                background 0.18s ease,
+                border-color 0.18s ease;
+        }
+
+        .game-button:hover {
+            background:
+                #2a313b;
+
+            border-color:
+                #4a5460;
+        }
+
+        .coming-soon {
+            background:
+                #171b21;
+
+            color:
+                #7d8590;
+
+            border-color:
+                #282e36;
+
+            cursor:
+                default;
+        }
+
+        .coming-soon:hover {
+            background:
+                #171b21;
+
+            border-color:
+                #282e36;
+        }
+
+        /* ==============================
+           REDEMPTION
+        ============================== */
+
+        .redeem-description {
+            color: #858e99;
+
+            font-size: 13px;
+
+            line-height: 1.55;
+
+            margin:
+                0 0 14px;
+        }
+
+        .redeem-row {
+            display: flex;
+
+            gap: 8px;
+
+            align-items: stretch;
+        }
+
+        .redeem-input {
+            flex: 1;
+
+            min-width: 0;
+
+            background:
+                #090b0f;
+
+            color: #ffffff;
+
+            border:
+                1px solid #343b45;
+
+            border-radius:
+                6px;
+
+            padding:
+                11px 12px;
+
+            outline: none;
+
+            font-family:
+                Consolas,
+                Monaco,
+                monospace;
+
+            font-size: 12px;
+        }
+
+        .redeem-input:focus {
+            border-color:
+                #555f6c;
+        }
+
+        .redeem-button {
+            border:
+                1px solid #3a424c;
+
+            background:
+                #242a32;
+
+            color: #ffffff;
+
+            border-radius:
+                6px;
+
+            padding:
+                0 16px;
+
+            cursor: pointer;
+
+            white-space:
+                nowrap;
+        }
+
+        .redeem-button:hover {
+            background:
+                #2d343e;
+        }
+
+        .redeem-button:disabled {
+            opacity:
+                0.55;
+
+            cursor:
+                not-allowed;
+        }
+
+        .result-box {
+            display: none;
+
+            margin-top: 14px;
+
+            padding:
+                12px;
+
+            background:
+                #0a0d11;
+
+            border:
+                1px solid #282f38;
+
+            border-radius:
+                6px;
+        }
+
+        .result-box.show {
+            display: block;
+        }
+
+        .result-label {
+            color: #737c87;
+
+            font-size: 10px;
+
+            font-weight: 700;
+
+            letter-spacing:
+                0.08em;
+
+            text-transform:
+                uppercase;
+
+            margin-bottom: 6px;
+        }
+
+        .result-code {
+            width: 100%;
+
+            min-height:
+                78px;
+
+            resize: vertical;
+
+            background:
+                #080a0d;
+
+            color: #ffffff;
+
+            border:
+                1px solid #323943;
+
+            border-radius:
+                5px;
+
+            padding:
+                10px;
+
+            font-family:
+                Consolas,
+                Monaco,
+                monospace;
+
+            font-size: 12px;
+
+            line-height:
+                1.5;
+
+            overflow-wrap:
+                anywhere;
+
+            word-break:
+                break-all;
+        }
+
+        .result-actions {
+            display: flex;
+
+            gap: 8px;
+
+            margin-top: 9px;
+
+            flex-wrap: wrap;
+        }
+
+        .small-button {
+            border:
+                1px solid #353d47;
+
+            background:
+                #1b2027;
+
+            color: #ffffff;
+
+            border-radius:
+                5px;
+
+            padding:
+                8px 11px;
+
+            cursor: pointer;
+
+            font-size: 12px;
+        }
+
+        .small-button:hover {
+            background:
+                #252c34;
+        }
+
+        .status {
+            margin-top: 10px;
+
+            min-height:
+                20px;
+
+            color:
+                #7e8792;
+
+            font-size:
+                12px;
+
+            line-height:
+                1.5;
+
+            overflow-wrap:
+                anywhere;
+        }
+
+        .status.ok {
+            color:
+                #b8c1cb;
+        }
+
+        .status.error {
+            color:
+                #c4c9cf;
+        }
+
+        /* ==============================
+           FOOTER
+        ============================== */
+
+        footer {
+            border-top:
+                1px solid #20262e;
+
+            background:
+                #090b0f;
+        }
+
+        .footer-inner {
+            width: min(
+                1400px,
+                calc(100% - 32px)
+            );
+
+            margin: 0 auto;
+
+            padding:
+                18px 0;
+
+            color:
+                #626b77;
+
+            font-size:
+                11px;
+
+            text-align:
+                center;
+        }
+
+        /* ==============================
+           MOBILE
+        ============================== */
+
+        @media (
+            max-width: 1000px
+        ) {
+            main {
+                grid-template-columns:
+                    1fr;
+            }
+
+            .side-column {
+                display: none;
+            }
+        }
+
+        @media (
+            max-width: 650px
+        ) {
+            .header-inner {
+                min-height: 58px;
+            }
+
+            nav {
+                gap: 13px;
+            }
+
+            nav a {
+                font-size: 12px;
+            }
+
+            main {
+                width:
+                    min(
+                        100% - 18px,
+                        900px
+                    );
+
+                padding-top:
+                    18px;
+            }
+
+            .hero {
+                padding-top:
+                    8px;
+            }
+
+            .redeem-row {
+                flex-direction:
+                    column;
+            }
+
+            .redeem-button {
+                min-height:
+                    42px;
+            }
+        }
+    </style>
 </head>
 
 <body>
 
-<header>
-
-    <div class="header-inner">
-
-        <div class="logo">
-            Game Hub
-        </div>
-
-        <nav>
-            <a href="/">Home</a>
-            <a href="#games">Games</a>
-            <a href="#redeem">Redeem</a>
-        </nav>
-
-    </div>
-
-</header>
-
-
 <div class="page">
 
-    <div class="layout">
+    <header>
+        <div class="header-inner">
+
+            <div class="brand">
+                Maths Homework
+            </div>
+
+            <nav>
+                <a href="#games">
+                    Games
+                </a>
+
+                <a href="#tokens">
+                    Tokens
+                </a>
+            </nav>
+
+        </div>
+    </header>
 
 
-        <aside class="ads">
+    <main>
 
-            <div class="ad">
+        <!-- LEFT ADS -->
+
+        <aside class="side-column">
+
+            <div class="ad-box">
                 Advertisement
             </div>
 
-            <div class="ad">
+            <div class="ad-box">
                 Advertisement
             </div>
 
-            <div class="ad">
+            <div class="ad-box">
                 Advertisement
             </div>
 
         </aside>
 
 
-        <main class="content">
+        <!-- CENTRE -->
 
+        <section class="centre">
 
-            <section class="hero">
+            <div class="hero">
 
                 <h1>
-                    Game Hub
+                    Games
                 </h1>
 
                 <p>
-                    Download and play games directly on your device.
+                    Download and play the available games.
+                    More games will be added over time.
                 </p>
 
-            </section>
+            </div>
 
 
-            <section class="redeem" id="redeem">
+            <!-- TOKEN PANEL -->
 
-                <h2>
-                    Redeem Tokens
-                </h2>
+            <section
+                class="panel"
+                id="tokens"
+            >
 
-                <p>
-                    Enter your redemption code below.
-                </p>
+                <div class="panel-header">
+
+                    <h2>
+                        Get Tokens
+                    </h2>
+
+                    <span>
+                        Token redemption
+                    </span>
+
+                </div>
+
+                <div class="panel-body">
+
+                    <p class="redeem-description">
+                        Enter the A1 Redemption Code generated
+                        by your game. The website will convert
+                        it into a B2 Token Code for the game.
+                    </p>
+
+                    <div class="redeem-row">
+
+                        <input
+                            id="redeemInput"
+                            class="redeem-input"
+                            type="text"
+                            spellcheck="false"
+                            autocomplete="off"
+                            autocapitalize="characters"
+                            placeholder="Paste A1 Redemption Code here"
+                        >
+
+                        <button
+                            id="redeemButton"
+                            class="redeem-button"
+                            type="button"
+                        >
+                            Get Token Code
+                        </button>
+
+                    </div>
 
 
-                <div class="redeem-row">
-
-                    <input
-                        id="redeemInput"
-                        type="text"
-                        placeholder="Enter redemption code"
-                        autocomplete="off"
+                    <div
+                        id="resultBox"
+                        class="result-box"
                     >
 
-                    <button id="redeemButton">
-                        Redeem
-                    </button>
+                        <div class="result-label">
+                            Token Code
+                        </div>
 
-                </div>
-
-
-                <div
-                    class="result"
-                    id="redeemResult">
-                </div>
-
-            </section>
+                        <textarea
+                            id="resultCode"
+                            class="result-code"
+                            readonly
+                            spellcheck="false"
+                        ></textarea>
 
 
-            <section id="games">
+                        <div class="result-actions">
 
-                <h2>
-                    Games
-                </h2>
+                            <button
+                                id="copyResult"
+                                class="small-button"
+                                type="button"
+                            >
+                                Copy Token Code
+                            </button>
 
-
-                <div class="games">
-
-
-                    <div class="game">
-
-                        <h3>
-                            Game One
-                        </h3>
-
-                        <p>
-                            Download and play Game One.
-                        </p>
-
-                        <a
-                            class="download"
-                            href="games/game-one.html"
-                        >
-                            Download
-                        </a>
+                        </div>
 
                     </div>
 
 
-                    <div class="game">
-
-                        <h3>
-                            Game Two
-                        </h3>
-
-                        <p>
-                            Download and play Game Two.
-                        </p>
-
-                        <a
-                            class="download"
-                            href="games/game-two.html"
-                        >
-                            Download
-                        </a>
-
-                    </div>
-
-
-                    <div class="game">
-
-                        <h3>
-                            Game Three
-                        </h3>
-
-                        <p>
-                            Download and play Game Three.
-                        </p>
-
-                        <a
-                            class="download"
-                            href="games/game-three.html"
-                        >
-                            Download
-                        </a>
-
-                    </div>
-
+                    <div
+                        id="redeemStatus"
+                        class="status"
+                    ></div>
 
                 </div>
 
             </section>
 
 
-        </main>
+            <!-- GAMES -->
+
+            <section
+                class="panel"
+                id="games"
+            >
+
+                <div class="panel-header">
+
+                    <h2>
+                        Available Games
+                    </h2>
+
+                    <span>
+                        3 slots
+                    </span>
+
+                </div>
+
+                <div class="panel-body">
+
+                    <div class="games">
 
 
-        <aside class="ads">
+                        <!-- GAME 1 -->
 
-            <div class="ad">
+                        <article class="game-card">
+
+                            <div>
+
+                                <div class="game-number">
+                                    Game 1
+                                </div>
+
+                                <h3>
+                                    Ping Pong
+                                </h3>
+
+                                <p>
+                                    A standalone offline
+                                    ping pong game.
+                                </p>
+
+                            </div>
+
+                            <a
+                                class="game-button"
+                                href="./ScienceHomework/Document.html"
+                                download="Ping-Pong.html"
+                            >
+                                Download Ping Pong
+                            </a>
+
+                        </article>
+
+
+                        <!-- GAME 2 -->
+
+                        <article class="game-card">
+
+                            <div>
+
+                                <div class="game-number">
+                                    Game 2
+                                </div>
+
+                                <h3>
+                                    Coming soon!
+                                </h3>
+
+                                <p>
+                                    This game is not available yet.
+                                </p>
+
+                            </div>
+
+                            <div
+                                class="game-button coming-soon"
+                            >
+                                Coming soon!
+                            </div>
+
+                        </article>
+
+
+                        <!-- GAME 3 -->
+
+                        <article class="game-card">
+
+                            <div>
+
+                                <div class="game-number">
+                                    Game 3
+                                </div>
+
+                                <h3>
+                                    Coming soon!
+                                </h3>
+
+                                <p>
+                                    This game is not available yet.
+                                </p>
+
+                            </div>
+
+                            <div
+                                class="game-button coming-soon"
+                            >
+                                Coming soon!
+                            </div>
+
+                        </article>
+
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </section>
+
+
+        <!-- RIGHT ADS -->
+
+        <aside class="side-column">
+
+            <div class="ad-box">
                 Advertisement
             </div>
 
-            <div class="ad">
+            <div class="ad-box">
                 Advertisement
             </div>
 
-            <div class="ad">
+            <div class="ad-box">
                 Advertisement
             </div>
 
         </aside>
 
+    </main>
 
-    </div>
+
+    <footer>
+
+        <div class="footer-inner">
+            Maths Homework
+        </div>
+
+    </footer>
 
 </div>
 
 
-<footer>
-    Game Hub
-</footer>
-
-
 <script>
+"use strict";
 
-const API_URL =
+const WORKER_URL =
     "https://mathshomework-api.imoleandcheese.workers.dev/";
 
-
 const redeemInput =
-    document.getElementById("redeemInput");
-
+    document.getElementById(
+        "redeemInput"
+    );
 
 const redeemButton =
-    document.getElementById("redeemButton");
+    document.getElementById(
+        "redeemButton"
+    );
+
+const resultBox =
+    document.getElementById(
+        "resultBox"
+    );
+
+const resultCode =
+    document.getElementById(
+        "resultCode"
+    );
+
+const copyResult =
+    document.getElementById(
+        "copyResult"
+    );
+
+const redeemStatus =
+    document.getElementById(
+        "redeemStatus"
+    );
 
 
-const redeemResult =
-    document.getElementById("redeemResult");
+function setStatus(
+    text,
+    type = ""
+) {
+    redeemStatus.textContent =
+        text;
+
+    redeemStatus.className =
+        "status" +
+        (
+            type
+                ? " " + type
+                : ""
+        );
+}
+
+
+function cleanRedemptionCode(
+    value
+) {
+    return String(
+        value || ""
+    )
+        .replace(
+            /[\u00A0\r\n\t ]+/g,
+            ""
+        )
+        .replace(
+            /[–—−]/g,
+            "-"
+        )
+        .trim();
+}
+
+
+async function requestTokenCode() {
+
+    const code =
+        cleanRedemptionCode(
+            redeemInput.value
+        );
+
+    redeemInput.value =
+        code;
+
+    resultBox.classList.remove(
+        "show"
+    );
+
+    resultCode.value =
+        "";
+
+    if (!code) {
+
+        setStatus(
+            "Paste an A1 Redemption Code first.",
+            "error"
+        );
+
+        redeemInput.focus();
+
+        return;
+    }
+
+
+    if (
+        !code.startsWith(
+            "A1-"
+        )
+    ) {
+
+        setStatus(
+            "That does not look like an A1 Redemption Code.",
+            "error"
+        );
+
+        redeemInput.focus();
+
+        return;
+    }
+
+
+    redeemButton.disabled =
+        true;
+
+    setStatus(
+        "Getting your Token Code..."
+    );
+
+
+    try {
+
+        const response =
+            await fetch(
+                WORKER_URL,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            code
+                        })
+                }
+            );
+
+
+        let data;
+
+        try {
+            data =
+                await response.json();
+        } catch (_) {
+
+            throw new Error(
+                "The redemption service returned an invalid response."
+            );
+        }
+
+
+        if (
+            !response.ok ||
+            !data ||
+            data.success !== true ||
+            typeof data.outputCode !==
+                "string"
+        ) {
+
+            throw new Error(
+                data &&
+                typeof data.error ===
+                    "string"
+
+                    ? data.error
+
+                    : "The Redemption Code could not be accepted."
+            );
+        }
+
+
+        resultCode.value =
+            data.outputCode;
+
+        resultBox.classList.add(
+            "show"
+        );
+
+        setStatus(
+            "Token Code created successfully. Copy it into the game.",
+            "ok"
+        );
+
+        resultCode.focus();
+
+    } catch (error) {
+
+        setStatus(
+            error &&
+            error.message
+
+                ? error.message
+
+                : "Could not contact the token service.",
+            "error"
+        );
+
+    } finally {
+
+        redeemButton.disabled =
+            false;
+    }
+}
+
+
+async function copyTokenCode() {
+
+    const value =
+        resultCode.value.trim();
+
+    if (!value) {
+
+        setStatus(
+            "There is no Token Code to copy.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    try {
+
+        await navigator.clipboard.writeText(
+            value
+        );
+
+        setStatus(
+            "Token Code copied.",
+            "ok"
+        );
+
+        return;
+
+    } catch (_) {}
+
+
+    try {
+
+        resultCode.focus();
+
+        resultCode.select();
+
+        document.execCommand(
+            "copy"
+        );
+
+        setStatus(
+            "Token Code copied.",
+            "ok"
+        );
+
+    } catch (_) {
+
+        setStatus(
+            "Copy was unavailable. Select the code and press Ctrl+C.",
+            "error"
+        );
+    }
+}
 
 
 redeemButton.addEventListener(
     "click",
-    async function() {
-
-        const code =
-            redeemInput.value.trim();
+    requestTokenCode
+);
 
 
-        if (!code) {
+copyResult.addEventListener(
+    "click",
+    copyTokenCode
+);
 
-            redeemResult.style.display =
-                "block";
 
-            redeemResult.innerHTML =
-                "Please enter a redemption code.";
+redeemInput.addEventListener(
+    "keydown",
+    event => {
 
-            return;
+        if (
+            event.key ===
+            "Enter"
+        ) {
+
+            event.preventDefault();
+
+            requestTokenCode();
         }
-
-
-        redeemButton.disabled =
-            true;
-
-
-        redeemResult.style.display =
-            "block";
-
-        redeemResult.textContent =
-            "Contacting redemption server...";
-
-
-        try {
-
-            const response =
-                await fetch(
-                    API_URL,
-                    {
-                        method: "POST",
-
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
-
-                        body:
-                            JSON.stringify({
-                                code: code
-                            })
-                    }
-                );
-
-
-            const data =
-                await response.json();
-
-
-            if (
-                !response.ok ||
-                !data.success
-            ) {
-
-                redeemResult.textContent =
-                    data.error ||
-                    "The redemption request failed.";
-
-                return;
-            }
-
-
-            redeemResult.innerHTML =
-
-                '<div class="result-title">' +
-                'Your new code:' +
-                '</div>' +
-
-                '<div class="output-code">' +
-                data.outputCode +
-                '</div>';
-
-
-        } catch (error) {
-
-            redeemResult.textContent =
-                "Unable to contact the redemption server.";
-
-            console.error(error);
-
-        } finally {
-
-            redeemButton.disabled =
-                false;
-
-        }
-
     }
 );
 
