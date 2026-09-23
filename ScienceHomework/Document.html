@@ -48,8 +48,11 @@ body {
    CANVAS
 ========================================================= */
 
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const canvas =
+    document.getElementById("game");
+
+const ctx =
+    canvas.getContext("2d");
 
 const WIDTH = 960;
 const HEIGHT = 600;
@@ -59,8 +62,11 @@ const HEIGHT = 600;
    SAVE
 ========================================================= */
 
-const SAVE_KEY = "pong_local_save_v2";
-const INSTALLATION_KEY = "pong_installation_id_v1";
+const SAVE_KEY =
+    "pong_local_save_v2";
+
+const INSTALLATION_KEY =
+    "pong_installation_id_v1";
 
 
 function defaultSave() {
@@ -82,68 +88,108 @@ function loadSave() {
 
     try {
 
-        const raw = localStorage.getItem(SAVE_KEY);
+        const raw =
+            localStorage.getItem(
+                SAVE_KEY
+            );
+
 
         if (!raw) {
 
-            save = defaultSave();
+            save =
+                defaultSave();
+
             saveGame();
+
             return;
 
         }
 
-        const parsed = JSON.parse(raw);
 
-        save = defaultSave();
+        const parsed =
+            JSON.parse(raw);
 
-        if (Number.isFinite(parsed.tokens)) {
+
+        save =
+            defaultSave();
+
+
+        if (
+            Number.isFinite(
+                parsed.tokens
+            )
+        ) {
 
             save.tokens =
                 Math.max(
                     0,
-                    Math.floor(parsed.tokens)
+                    Math.floor(
+                        parsed.tokens
+                    )
                 );
 
         }
 
-        if (Number.isFinite(parsed.difficulty)) {
+
+        if (
+            Number.isFinite(
+                parsed.difficulty
+            )
+        ) {
 
             save.difficulty =
                 Math.max(
                     0,
                     Math.min(
                         2,
-                        Math.floor(parsed.difficulty)
+                        Math.floor(
+                            parsed.difficulty
+                        )
                     )
                 );
 
         }
 
-        if (Number.isFinite(parsed.unlockedDifficulty)) {
+
+        if (
+            Number.isFinite(
+                parsed.unlockedDifficulty
+            )
+        ) {
 
             save.unlockedDifficulty =
                 Math.max(
                     0,
                     Math.min(
                         2,
-                        Math.floor(parsed.unlockedDifficulty)
+                        Math.floor(
+                            parsed.unlockedDifficulty
+                        )
                     )
                 );
 
         }
 
-        if (Number.isFinite(parsed.currentRound)) {
+
+        if (
+            Number.isFinite(
+                parsed.currentRound
+            )
+        ) {
 
             save.currentRound =
                 Math.max(
                     1,
                     Math.min(
                         5,
-                        Math.floor(parsed.currentRound)
+                        Math.floor(
+                            parsed.currentRound
+                        )
                     )
                 );
 
         }
+
 
         if (
             save.difficulty >
@@ -157,7 +203,8 @@ function loadSave() {
 
     } catch (error) {
 
-        save = defaultSave();
+        save =
+            defaultSave();
 
     }
 
@@ -170,7 +217,9 @@ function saveGame() {
 
         localStorage.setItem(
             SAVE_KEY,
-            JSON.stringify(save)
+            JSON.stringify(
+                save
+            )
         );
 
     } catch (error) {
@@ -267,6 +316,274 @@ const slowRoundCosts = [
 
 
 /* =========================================================
+   GAME STATES
+========================================================= */
+
+const STATES = {
+
+    MENU: "menu",
+    DIFFICULTY: "difficulty",
+    ROUND: "round",
+    PLAYING: "playing",
+    PAUSED: "paused",
+    RESULT: "result",
+    TOKENS: "tokens",
+    REDEEM: "redeem",
+    COOLDOWN: "cooldown"
+
+};
+
+
+let state =
+    STATES.MENU;
+
+
+/* =========================================================
+   MENU VARIABLES
+========================================================= */
+
+let menuSelection = 0;
+
+let difficultySelection =
+    save.difficulty;
+
+let roundSelection =
+    save.currentRound - 1;
+
+let resultSelection = 0;
+
+let tokenSelection = 0;
+
+let redeemSelection = 0;
+
+
+/* =========================================================
+   REDEMPTION VARIABLES
+========================================================= */
+
+let retryCount = 0;
+
+const MAX_RETRIES = 3;
+
+const COOLDOWN_SECONDS = 300;
+
+let cooldownRemaining = 0;
+
+let cooldownActive = false;
+
+let cooldownLastUpdate = 0;
+
+let redemptionMessage = "";
+
+let codeInput = "";
+
+
+/* =========================================================
+   HIDDEN CLIPBOARD INPUT
+========================================================= */
+
+const clipboardInput =
+    document.createElement(
+        "textarea"
+    );
+
+
+clipboardInput.setAttribute(
+    "aria-hidden",
+    "true"
+);
+
+clipboardInput.autocomplete =
+    "off";
+
+clipboardInput.spellcheck =
+    false;
+
+
+clipboardInput.style.position =
+    "fixed";
+
+clipboardInput.style.left =
+    "-10000px";
+
+clipboardInput.style.top =
+    "-10000px";
+
+clipboardInput.style.width =
+    "1px";
+
+clipboardInput.style.height =
+    "1px";
+
+clipboardInput.style.opacity =
+    "0";
+
+clipboardInput.style.pointerEvents =
+    "none";
+
+clipboardInput.style.zIndex =
+    "-1";
+
+
+document.body.appendChild(
+    clipboardInput
+);
+
+
+function focusClipboardInput() {
+
+    if (
+        state !==
+        STATES.REDEEM
+    ) {
+
+        return;
+
+    }
+
+
+    try {
+
+        clipboardInput.value =
+            codeInput;
+
+        clipboardInput.focus();
+
+        clipboardInput.setSelectionRange(
+            clipboardInput.value.length,
+            clipboardInput.value.length
+        );
+
+    } catch (error) {
+
+    }
+
+}
+
+
+clipboardInput.addEventListener(
+    "paste",
+    function(event) {
+
+        if (
+            state !==
+            STATES.REDEEM
+        ) {
+
+            return;
+
+        }
+
+
+        event.preventDefault();
+
+
+        let pasted =
+            "";
+
+
+        if (
+            event.clipboardData
+        ) {
+
+            pasted =
+                event.clipboardData.getData(
+                    "text"
+                );
+
+        }
+
+
+        if (!pasted) {
+
+            pasted =
+                "";
+
+        }
+
+
+        codeInput =
+            pasted
+                .replace(
+                    /\s+/g,
+                    ""
+                )
+                .toUpperCase();
+
+
+        clipboardInput.value =
+            codeInput;
+
+
+        redemptionMessage =
+            "Token code pasted.";
+
+    }
+);
+
+
+/* =========================================================
+   PADDLES
+========================================================= */
+
+const PADDLE_WIDTH = 18;
+const PADDLE_HEIGHT = 110;
+
+const PLAYER_X = 40;
+const AI_X =
+    WIDTH -
+    58;
+
+
+let playerY =
+    HEIGHT / 2 -
+    PADDLE_HEIGHT / 2;
+
+let aiY =
+    HEIGHT / 2 -
+    PADDLE_HEIGHT / 2;
+
+
+/* =========================================================
+   BALL
+========================================================= */
+
+const BALL_SIZE = 16;
+
+let ballX =
+    WIDTH / 2;
+
+let ballY =
+    HEIGHT / 2;
+
+let ballVX = 0;
+
+let ballVY = 0;
+
+let ballSpeed = 0;
+
+
+/* =========================================================
+   SCORE
+========================================================= */
+
+let playerScore = 0;
+
+let aiScore = 0;
+
+
+/* =========================================================
+   MATCH
+========================================================= */
+
+let gameRunning = false;
+
+let paused = false;
+
+let matchResult = "";
+
+
+/* =========================================================
    CODE SYSTEM
 ========================================================= */
 
@@ -274,6 +591,7 @@ const CODE_ALPHABET =
     "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 const INSTALLATION_ID_LENGTH = 48;
+
 const REDEMPTION_ID_LENGTH = 32;
 
 const CODE_A_PREFIX = "A1";
@@ -291,8 +609,18 @@ function isValidCodeString(
 ) {
 
     if (
-        typeof value !== "string" ||
-        value.length !== length
+        typeof value !==
+        "string"
+    ) {
+
+        return false;
+
+    }
+
+
+    if (
+        value.length !==
+        length
     ) {
 
         return false;
@@ -333,13 +661,16 @@ function randomCodeString(
 
         if (
             window.crypto &&
-            crypto.getRandomValues
+            window.crypto.getRandomValues
         ) {
 
             const values =
-                new Uint32Array(length);
+                new Uint32Array(
+                    length
+                );
 
-            crypto.getRandomValues(
+
+            window.crypto.getRandomValues(
                 values
             );
 
@@ -437,6 +768,10 @@ function getInstallationId() {
 }
 
 
+let installationId =
+    getInstallationId();
+
+
 /* =========================================================
    SHA-256
 ========================================================= */
@@ -484,13 +819,7 @@ const SHA256_K = [
     0x81c2c92e,
     0x92722c85,
     0xa2bfe8a1,
-    0xa81a664b,
-    0xc24b8b70,
-    0xc76c51a3,
-    0xd192e819,
-    0xd6990624,
-    0xf40e3585,
-    0x106aa070,
+    0xc19b2994,
     0x19a4c116,
     0x1e376c08,
     0x2748774c,
@@ -519,7 +848,8 @@ function rightRotate(
         value >>> amount
     ) |
     (
-        value << (
+        value <<
+        (
             32 - amount
         )
     );
@@ -538,7 +868,8 @@ function sha256Sync(
 
 
     const bitLength =
-        bytes.length * 8;
+        bytes.length *
+        8;
 
 
     const paddedLength =
@@ -549,7 +880,8 @@ function sha256Sync(
                     9
                 ) / 64
             )
-        ) * 64;
+        ) *
+        64;
 
 
     const message =
@@ -565,7 +897,8 @@ function sha256Sync(
 
     message[
         bytes.length
-    ] = 0x80;
+    ] =
+        0x80;
 
 
     const highBits =
@@ -582,20 +915,29 @@ function sha256Sync(
     message[
         paddedLength - 8
     ] =
-        (highBits >>> 24) &
+        (
+            highBits >>> 24
+        ) &
         0xff;
+
 
     message[
         paddedLength - 7
     ] =
-        (highBits >>> 16) &
+        (
+            highBits >>> 16
+        ) &
         0xff;
+
 
     message[
         paddedLength - 6
     ] =
-        (highBits >>> 8) &
+        (
+            highBits >>> 8
+        ) &
         0xff;
+
 
     message[
         paddedLength - 5
@@ -603,23 +945,33 @@ function sha256Sync(
         highBits &
         0xff;
 
+
     message[
         paddedLength - 4
     ] =
-        (lowBits >>> 24) &
+        (
+            lowBits >>> 24
+        ) &
         0xff;
+
 
     message[
         paddedLength - 3
     ] =
-        (lowBits >>> 16) &
+        (
+            lowBits >>> 16
+        ) &
         0xff;
+
 
     message[
         paddedLength - 2
     ] =
-        (lowBits >>> 8) &
+        (
+            lowBits >>> 8
+        ) &
         0xff;
+
 
     message[
         paddedLength - 1
@@ -628,18 +980,35 @@ function sha256Sync(
         0xff;
 
 
-    let h0 = 0x6a09e667;
-    let h1 = 0xbb67ae85;
-    let h2 = 0x3c6ef372;
-    let h3 = 0xa54ff53a;
-    let h4 = 0x510e527f;
-    let h5 = 0x9b05688c;
-    let h6 = 0x1f83d9ab;
-    let h7 = 0x5be0cd19;
+    let h0 =
+        0x6a09e667;
+
+    let h1 =
+        0xbb67ae85;
+
+    let h2 =
+        0x3c6ef372;
+
+    let h3 =
+        0xa54ff53a;
+
+    let h4 =
+        0x510e527f;
+
+    let h5 =
+        0x9b05688c;
+
+    let h6 =
+        0x1f83d9ab;
+
+    let h7 =
+        0x5be0cd19;
 
 
     const words =
-        new Uint32Array(64);
+        new Uint32Array(
+            64
+        );
 
 
     for (
@@ -661,13 +1030,16 @@ function sha256Sync(
 
             words[i] =
                 (
-                    message[position] << 24
+                    message[position]
+                    << 24
                 ) |
                 (
-                    message[position + 1] << 16
+                    message[position + 1]
+                    << 16
                 ) |
                 (
-                    message[position + 2] << 8
+                    message[position + 2]
+                    << 8
                 ) |
                 (
                     message[position + 3]
@@ -808,54 +1180,80 @@ function sha256Sync(
             h = g;
             g = f;
             f = e;
-            e = (
-                d +
-                temp1
-            ) >>> 0;
+
+            e =
+                (
+                    d +
+                    temp1
+                ) >>> 0;
 
             d = c;
             c = b;
             b = a;
 
-            a = (
-                temp1 +
-                temp2
-            ) >>> 0;
+            a =
+                (
+                    temp1 +
+                    temp2
+                ) >>> 0;
 
         }
 
 
-        h0 = (
-            h0 + a
-        ) >>> 0;
+        h0 =
+            (
+                h0 +
+                a
+            ) >>> 0;
 
-        h1 = (
-            h1 + b
-        ) >>> 0;
 
-        h2 = (
-            h2 + c
-        ) >>> 0;
+        h1 =
+            (
+                h1 +
+                b
+            ) >>> 0;
 
-        h3 = (
-            h3 + d
-        ) >>> 0;
 
-        h4 = (
-            h4 + e
-        ) >>> 0;
+        h2 =
+            (
+                h2 +
+                c
+            ) >>> 0;
 
-        h5 = (
-            h5 + f
-        ) >>> 0;
 
-        h6 = (
-            h6 + g
-        ) >>> 0;
+        h3 =
+            (
+                h3 +
+                d
+            ) >>> 0;
 
-        h7 = (
-            h7 + h
-        ) >>> 0;
+
+        h4 =
+            (
+                h4 +
+                e
+            ) >>> 0;
+
+
+        h5 =
+            (
+                h5 +
+                f
+            ) >>> 0;
+
+
+        h6 =
+            (
+                h6 +
+                g
+            ) >>> 0;
+
+
+        h7 =
+            (
+                h7 +
+                h
+            ) >>> 0;
 
     }
 
@@ -905,7 +1303,7 @@ async function sha256(
 
         if (
             window.crypto &&
-            crypto.subtle
+            window.crypto.subtle
         ) {
 
             const data =
@@ -915,7 +1313,7 @@ async function sha256(
 
 
             const hash =
-                await crypto.subtle.digest(
+                await window.crypto.subtle.digest(
                     "SHA-256",
                     data
                 );
@@ -1035,37 +1433,49 @@ function calculateEquation(
         values[0] *
         values[2];
 
+
     let b =
         values[1] +
         values[3];
+
 
     let c =
         values[4] *
         7;
 
+
     let d =
         values[5] +
         values[6];
 
+
     let e =
         (
-            a + b
-        ) * c;
+            a +
+            b
+        ) *
+        c;
+
 
     let f =
-        e + d;
+        e +
+        d;
+
 
     let g =
         f *
         values[7];
 
+
     let h =
         g +
         values[8];
 
+
     let i =
         h *
         values[9];
+
 
     let j =
         i +
@@ -1094,13 +1504,16 @@ function calculateEquation(
         k +
         values[12];
 
+
     let m =
         l *
         values[13];
 
+
     let n =
         m +
         values[14];
+
 
     let result =
         n *
@@ -1123,16 +1536,11 @@ function calculateEquation(
    CODE A
 ========================================================= */
 
-let installationId =
-    getInstallationId();
-
 let currentCodeA = "";
 
 let currentRedemptionId = "";
 
 let codeAGenerating = false;
-
-let codeASelection = 0;
 
 
 async function createCodeA() {
@@ -1147,7 +1555,6 @@ async function createCodeA() {
 
 
     codeAGenerating = true;
-
 
     currentCodeA = "";
     currentRedemptionId = "";
@@ -1217,7 +1624,7 @@ async function createCodeA() {
 
 
         redemptionMessage =
-            "Code A ready.";
+            "Redemption code ready.";
 
     } catch (error) {
 
@@ -1226,7 +1633,7 @@ async function createCodeA() {
         currentRedemptionId = "";
 
         redemptionMessage =
-            "Unable to generate Code A.";
+            "Unable to generate redemption code.";
 
     }
 
@@ -1240,7 +1647,7 @@ createCodeA();
 
 
 /* =========================================================
-   COPY CODE
+   COPY
 ========================================================= */
 
 async function copyText(
@@ -1301,6 +1708,7 @@ async function copyText(
 
 
         area.focus();
+
         area.select();
 
 
@@ -1333,7 +1741,7 @@ async function copyCurrentCodeA() {
     ) {
 
         redemptionMessage =
-            "Generate a Code A first.";
+            "There is no redemption code to copy.";
 
         return;
 
@@ -1348,220 +1756,24 @@ async function copyCurrentCodeA() {
 
     redemptionMessage =
         copied
-            ? "Code A copied to clipboard."
-            : "Copy failed. Select and copy the code manually.";
+            ? "Redemption code copied."
+            : "Copy failed. You can copy it manually.";
 
 }
 
 
 /* =========================================================
-   GAME STATES
+   REDEMPTION
 ========================================================= */
 
-const STATES = {
-
-    MENU: "menu",
-    DIFFICULTY: "difficulty",
-    ROUND: "round",
-    PLAYING: "playing",
-    PAUSED: "paused",
-    RESULT: "result",
-    TOKENS: "tokens",
-    REDEEM_A: "redeem_a",
-    REDEEM_B: "redeem_b",
-    COOLDOWN: "cooldown"
-
-};
-
-
-let state =
-    STATES.MENU;
-
-
-/* =========================================================
-   MENUS
-========================================================= */
-
-let menuSelection = 0;
-
-let difficultySelection =
-    save.difficulty;
-
-let roundSelection =
-    save.currentRound - 1;
-
-let resultSelection = 0;
-
-let tokenSelection = 0;
-
-
-/* =========================================================
-   RETRIES / COOLDOWN
-========================================================= */
-
-let retryCount = 0;
-
-const MAX_RETRIES = 3;
-
-const COOLDOWN_SECONDS = 300;
-
-let cooldownRemaining = 0;
-
-let cooldownActive = false;
-
-let cooldownLastUpdate = 0;
-
-let redemptionMessage = "";
-
-let codeInput = "";
-
-
-/* =========================================================
-   PADDLES
-========================================================= */
-
-const PADDLE_WIDTH = 18;
-const PADDLE_HEIGHT = 110;
-
-const PLAYER_X = 40;
-const AI_X = WIDTH - 58;
-
-let playerY =
-    HEIGHT / 2 -
-    PADDLE_HEIGHT / 2;
-
-let aiY =
-    HEIGHT / 2 -
-    PADDLE_HEIGHT / 2;
-
-
-/* =========================================================
-   BALL
-========================================================= */
-
-const BALL_SIZE = 16;
-
-let ballX =
-    WIDTH / 2;
-
-let ballY =
-    HEIGHT / 2;
-
-let ballVX = 0;
-
-let ballVY = 0;
-
-let ballSpeed = 0;
-
-
-/* =========================================================
-   SCORE
-========================================================= */
-
-let playerScore = 0;
-
-let aiScore = 0;
-
-
-/* =========================================================
-   MATCH
-========================================================= */
-
-let gameRunning = false;
-
-let paused = false;
-
-let matchResult = "";
-
-
-/* =========================================================
-   KEYBOARD
-========================================================= */
-
-const keys = {};
-
-
-window.addEventListener(
-    "keydown",
-    function(event) {
-
-        keys[
-            event.key
-        ] = true;
-
-
-        if (
-            event.key === " " ||
-            event.code === "Space"
-        ) {
-
-            event.preventDefault();
-
-
-            if (
-                state === STATES.PLAYING
-            ) {
-
-                paused = true;
-
-                state =
-                    STATES.PAUSED;
-
-            } else if (
-                state === STATES.PAUSED
-            ) {
-
-                paused = false;
-
-                state =
-                    STATES.PLAYING;
-
-            }
-
-        }
-
-
-        if (
-            event.key === "Escape"
-        ) {
-
-            handleEscape();
-
-        }
-
-
-        handleEnter(event);
-
-    }
-);
-
-
-window.addEventListener(
-    "keyup",
-    function(event) {
-
-        keys[
-            event.key
-        ] = false;
-
-    }
-);
-
-
-/* =========================================================
-   ESCAPE
-========================================================= */
-
-function handleEscape() {
+async function requestNewCode() {
 
     if (
-        state === STATES.PLAYING
+        cooldownActive
     ) {
 
-        paused = true;
-
         state =
-            STATES.PAUSED;
+            STATES.COOLDOWN;
 
         return;
 
@@ -1569,13 +1781,59 @@ function handleEscape() {
 
 
     if (
-        state === STATES.PAUSED
+        retryCount >=
+        MAX_RETRIES
     ) {
 
-        paused = false;
+        beginCooldown();
 
-        state =
-            STATES.PLAYING;
+        return;
+
+    }
+
+
+    retryCount++;
+
+
+    await createCodeA();
+
+
+    redemptionMessage =
+        "New redemption code generated. Attempt " +
+        retryCount +
+        " of " +
+        MAX_RETRIES + ".";
+
+}
+
+
+/* =========================================================
+   COOLDOWN
+========================================================= */
+
+function beginCooldown() {
+
+    cooldownActive = true;
+
+    cooldownRemaining =
+        COOLDOWN_SECONDS;
+
+    cooldownLastUpdate =
+        performance.now();
+
+    state =
+        STATES.COOLDOWN;
+
+}
+
+
+function updateCooldown(
+    now
+) {
+
+    if (
+        !cooldownActive
+    ) {
 
         return;
 
@@ -1583,52 +1841,53 @@ function handleEscape() {
 
 
     if (
-        state === STATES.DIFFICULTY ||
-        state === STATES.TOKENS
+        cooldownLastUpdate === 0
     ) {
 
-        state =
-            STATES.MENU;
+        cooldownLastUpdate =
+            now;
 
         return;
 
     }
 
 
-    if (
-        state === STATES.ROUND
-    ) {
-
-        state =
-            STATES.DIFFICULTY;
-
-        return;
-
-    }
+    const elapsed =
+        (
+            now -
+            cooldownLastUpdate
+        ) / 1000;
 
 
-    if (
-        state === STATES.RESULT
-    ) {
+    cooldownLastUpdate =
+        now;
 
-        state =
-            STATES.ROUND;
 
-        return;
-
-    }
+    cooldownRemaining -=
+        elapsed;
 
 
     if (
-        state === STATES.REDEEM_A ||
-        state === STATES.REDEEM_B ||
-        state === STATES.COOLDOWN
+        cooldownRemaining <= 0
     ) {
 
-        state =
-            STATES.TOKENS;
+        cooldownRemaining =
+            0;
 
-        return;
+
+        cooldownActive =
+            false;
+
+
+        retryCount =
+            0;
+
+
+        redemptionMessage =
+            "Cooldown complete. You have 3 new attempts.";
+
+
+        createCodeA();
 
     }
 
@@ -1636,8 +1895,56 @@ function handleEscape() {
 
 
 /* =========================================================
-   DIFFICULTY / ROUND / MENU NAVIGATION
+   DIFFICULTY / ROUND / MENU
 ========================================================= */
+
+function getDifficulty() {
+
+    return difficulties[
+        save.difficulty
+    ];
+
+}
+
+
+function getRoundCost(
+    difficultyIndex,
+    roundIndex
+) {
+
+    const multiplier =
+        difficultyIndex === 0
+            ? 1
+            : difficultyIndex === 1
+                ? 2
+                : 5;
+
+
+    return (
+        slowRoundCosts[
+            roundIndex
+        ] *
+        multiplier
+    );
+
+}
+
+
+function getRoundWinning(
+    difficultyIndex,
+    roundIndex
+) {
+
+    return (
+        getRoundCost(
+            difficultyIndex,
+            roundIndex
+        ) *
+        2
+    );
+
+}
+
 
 function menuMove(
     direction
@@ -1774,13 +2081,13 @@ function tokenMove(
         tokenSelection < 0
     ) {
 
-        tokenSelection = 2;
+        tokenSelection = 1;
 
     }
 
 
     if (
-        tokenSelection > 2
+        tokenSelection > 1
     ) {
 
         tokenSelection = 0;
@@ -1790,86 +2097,30 @@ function tokenMove(
 }
 
 
-function codeAMove(
+function redeemMove(
     direction
 ) {
 
-    codeASelection +=
+    redeemSelection +=
         direction;
 
 
     if (
-        codeASelection < 0
+        redeemSelection < 0
     ) {
 
-        codeASelection = 2;
+        redeemSelection = 3;
 
     }
 
 
     if (
-        codeASelection > 2
+        redeemSelection > 3
     ) {
 
-        codeASelection = 0;
+        redeemSelection = 0;
 
     }
-
-}
-
-
-/* =========================================================
-   CURRENT DIFFICULTY
-========================================================= */
-
-function getDifficulty() {
-
-    return difficulties[
-        save.difficulty
-    ];
-
-}
-
-
-/* =========================================================
-   ROUND COSTS
-========================================================= */
-
-function getRoundCost(
-    difficultyIndex,
-    roundIndex
-) {
-
-    const multiplier =
-        difficultyIndex === 0
-            ? 1
-            : difficultyIndex === 1
-                ? 2
-                : 5;
-
-
-    return (
-        slowRoundCosts[
-            roundIndex
-        ] *
-        multiplier
-    );
-
-}
-
-
-function getRoundWinning(
-    difficultyIndex,
-    roundIndex
-) {
-
-    return (
-        getRoundCost(
-            difficultyIndex,
-            roundIndex
-        ) *
-        2
-    );
 
 }
 
@@ -1921,10 +2172,13 @@ function handleEnter(
         save.difficulty =
             difficultySelection;
 
+
         saveGame();
+
 
         roundSelection =
             save.currentRound - 1;
+
 
         state =
             STATES.ROUND;
@@ -1965,24 +2219,14 @@ function handleEnter(
         ) {
 
             state =
-                STATES.REDEEM_A;
+                STATES.REDEEM;
 
-            codeASelection = 0;
 
-            if (
-                !currentCodeA
-            ) {
+            redeemSelection =
+                0;
 
-                createCodeA();
 
-            }
-
-        } else if (
-            tokenSelection === 1
-        ) {
-
-            state =
-                STATES.REDEEM_B;
+            focusClipboardInput();
 
         } else {
 
@@ -1997,20 +2241,26 @@ function handleEnter(
 
 
     if (
-        state === STATES.REDEEM_A
+        state === STATES.REDEEM
     ) {
 
         if (
-            codeASelection === 0
+            redeemSelection === 0
         ) {
 
             copyCurrentCodeA();
 
         } else if (
-            codeASelection === 1
+            redeemSelection === 1
         ) {
 
             requestNewCode();
+
+        } else if (
+            redeemSelection === 2
+        ) {
+
+            attemptCode();
 
         } else {
 
@@ -2023,12 +2273,89 @@ function handleEnter(
 
     }
 
+}
+
+
+/* =========================================================
+   ESCAPE
+========================================================= */
+
+function handleEscape() {
 
     if (
-        state === STATES.REDEEM_B
+        state === STATES.PLAYING
     ) {
 
-        attemptCodeB();
+        paused = true;
+
+        state =
+            STATES.PAUSED;
+
+        return;
+
+    }
+
+
+    if (
+        state === STATES.PAUSED
+    ) {
+
+        paused = false;
+
+        state =
+            STATES.PLAYING;
+
+        return;
+
+    }
+
+
+    if (
+        state === STATES.DIFFICULTY ||
+        state === STATES.TOKENS
+    ) {
+
+        state =
+            STATES.MENU;
+
+        return;
+
+    }
+
+
+    if (
+        state === STATES.ROUND
+    ) {
+
+        state =
+            STATES.DIFFICULTY;
+
+        return;
+
+    }
+
+
+    if (
+        state === STATES.RESULT
+    ) {
+
+        state =
+            STATES.ROUND;
+
+        return;
+
+    }
+
+
+    if (
+        state === STATES.REDEEM ||
+        state === STATES.COOLDOWN
+    ) {
+
+        state =
+            STATES.TOKENS;
+
+        return;
 
     }
 
@@ -2036,7 +2363,7 @@ function handleEnter(
 
 
 /* =========================================================
-   ROUND CHOICE
+   ROUND
 ========================================================= */
 
 function chooseRound() {
@@ -2061,8 +2388,10 @@ function chooseRound() {
             cost +
             " tokens to play this round.";
 
+
         state =
             STATES.TOKENS;
+
 
         return;
 
@@ -2072,7 +2401,9 @@ function chooseRound() {
     save.currentRound =
         selectedRound;
 
+
     saveGame();
+
 
     startRound(
         selectedRound
@@ -2114,6 +2445,7 @@ function startRound(
 
     save.tokens -=
         cost;
+
 
     saveGame();
 
@@ -2175,6 +2507,7 @@ function resetBall(
 
     ballX =
         WIDTH / 2;
+
 
     ballY =
         HEIGHT / 2;
@@ -2372,6 +2705,7 @@ function updateBall(
         ballY =
             BALL_SIZE / 2;
 
+
         ballVY =
             Math.abs(
                 ballVY
@@ -2389,6 +2723,7 @@ function updateBall(
         ballY =
             HEIGHT -
             BALL_SIZE / 2;
+
 
         ballVY =
             -Math.abs(
@@ -2525,8 +2860,10 @@ function bounceFromPaddle(
         Math.sqrt(
             Math.max(
                 0,
-                ballSpeed * ballSpeed -
-                ballVY * ballVY
+                ballSpeed *
+                ballSpeed -
+                ballVY *
+                ballVY
             )
         );
 
@@ -2556,6 +2893,7 @@ function checkScore() {
     ) {
 
         finishRound(true);
+
         return;
 
     }
@@ -2566,6 +2904,7 @@ function checkScore() {
     ) {
 
         finishRound(false);
+
         return;
 
     }
@@ -2635,6 +2974,7 @@ function finishRound(
 
     resultSelection = 0;
 
+
     state =
         STATES.RESULT;
 
@@ -2686,6 +3026,7 @@ function chooseResult() {
             save.currentRound
         );
 
+
         return;
 
     }
@@ -2698,220 +3039,21 @@ function chooseResult() {
 
 
 /* =========================================================
-   NEW CODE A
+   CODE REDEMPTION
 ========================================================= */
 
-function requestNewCode() {
+function attemptCode() {
 
     if (
-        cooldownActive
+        codeInput
+            .trim()
+            .length === 0
     ) {
 
         redemptionMessage =
-            "You are currently on cooldown.";
+            "Enter a token code first.";
 
-        state =
-            STATES.COOLDOWN;
-
-        return;
-
-    }
-
-
-    if (
-        retryCount >=
-        MAX_RETRIES
-    ) {
-
-        beginCooldown();
-
-        return;
-
-    }
-
-
-    retryCount++;
-
-
-    createCodeA()
-        .then(
-            function() {
-
-                redemptionMessage =
-                    "New Code A generated. Attempt " +
-                    retryCount +
-                    " of " +
-                    MAX_RETRIES +
-                    ".";
-
-            }
-        );
-
-
-}
-
-
-/* =========================================================
-   COOLDOWN
-========================================================= */
-
-function beginCooldown() {
-
-    cooldownActive = true;
-
-    cooldownRemaining =
-        COOLDOWN_SECONDS;
-
-    cooldownLastUpdate =
-        performance.now();
-
-    state =
-        STATES.COOLDOWN;
-
-}
-
-
-function updateCooldown(
-    now
-) {
-
-    if (
-        !cooldownActive
-    ) {
-
-        return;
-
-    }
-
-
-    if (
-        cooldownLastUpdate === 0
-    ) {
-
-        cooldownLastUpdate =
-            now;
-
-        return;
-
-    }
-
-
-    const elapsed =
-        (
-            now -
-            cooldownLastUpdate
-        ) / 1000;
-
-
-    cooldownLastUpdate =
-        now;
-
-
-    cooldownRemaining -=
-        elapsed;
-
-
-    if (
-        cooldownRemaining <= 0
-    ) {
-
-        cooldownRemaining = 0;
-
-        cooldownActive = false;
-
-        retryCount = 0;
-
-        redemptionMessage =
-            "Cooldown complete. You have 3 new attempts.";
-
-        state =
-            STATES.REDEEM_A;
-
-        codeASelection = 0;
-
-        createCodeA();
-
-    }
-
-}
-
-
-/* =========================================================
-   CODE B INPUT
-========================================================= */
-
-window.addEventListener(
-    "keydown",
-    function(event) {
-
-        if (
-            state !== STATES.REDEEM_B
-        ) {
-
-            return;
-
-        }
-
-
-        if (
-            event.key === "Backspace"
-        ) {
-
-            codeInput =
-                codeInput.slice(
-                    0,
-                    -1
-                );
-
-            event.preventDefault();
-
-            return;
-
-        }
-
-
-        if (
-            event.key === "Enter"
-        ) {
-
-            attemptCodeB();
-
-            event.preventDefault();
-
-            return;
-
-        }
-
-
-        if (
-            event.key.length === 1
-        ) {
-
-            if (
-                codeInput.length < 300
-            ) {
-
-                codeInput +=
-                    event.key.toUpperCase();
-
-            }
-
-            event.preventDefault();
-
-        }
-
-    }
-);
-
-
-function attemptCodeB() {
-
-    if (
-        codeInput.trim().length === 0
-    ) {
-
-        redemptionMessage =
-            "Enter a Code B first.";
+        focusClipboardInput();
 
         return;
 
@@ -2919,102 +3061,15 @@ function attemptCodeB() {
 
 
     /*
-       Real Ed25519 verification will be connected
-       once the genuine Worker key pair is established.
-
-       This intentionally does NOT award tokens yet.
+       Real Ed25519 verification and token awarding
+       will be connected after the genuine Worker
+       public key has been generated and tested.
     */
 
     redemptionMessage =
-        "Code B received. Signature verification is not installed yet.";
+        "Token code received. Verification is not connected yet.";
 
-}
-
-
-/* =========================================================
-   DRAW HELPERS
-========================================================= */
-
-function clearScreen(
-    color
-) {
-
-    ctx.fillStyle =
-        color;
-
-    ctx.fillRect(
-        0,
-        0,
-        WIDTH,
-        HEIGHT
-    );
-
-}
-
-
-function drawText(
-    value,
-    x,
-    y,
-    size,
-    color,
-    align = "center"
-) {
-
-    ctx.fillStyle =
-        color;
-
-    ctx.font =
-        "bold " +
-        size +
-        "px Arial";
-
-    ctx.textAlign =
-        align;
-
-    ctx.textBaseline =
-        "middle";
-
-    ctx.fillText(
-        value,
-        x,
-        y
-    );
-
-}
-
-
-function drawPanel(
-    x,
-    y,
-    width,
-    height,
-    fill,
-    border
-) {
-
-    ctx.fillStyle =
-        fill;
-
-    ctx.fillRect(
-        x,
-        y,
-        width,
-        height
-    );
-
-
-    ctx.strokeStyle =
-        border;
-
-    ctx.lineWidth = 2;
-
-    ctx.strokeRect(
-        x,
-        y,
-        width,
-        height
-    );
+    focusClipboardInput();
 
 }
 
@@ -3035,6 +3090,7 @@ function drawMenuOption(
 
         ctx.fillStyle =
             "#ffffff";
+
 
         ctx.fillRect(
             WIDTH / 2 - 210,
@@ -3068,6 +3124,102 @@ function drawMenuOption(
 
 
 /* =========================================================
+   DRAW HELPERS
+========================================================= */
+
+function clearScreen(
+    color
+) {
+
+    ctx.fillStyle =
+        color;
+
+
+    ctx.fillRect(
+        0,
+        0,
+        WIDTH,
+        HEIGHT
+    );
+
+}
+
+
+function drawText(
+    value,
+    x,
+    y,
+    size,
+    color,
+    align = "center"
+) {
+
+    ctx.fillStyle =
+        color;
+
+
+    ctx.font =
+        "bold " +
+        size +
+        "px Arial";
+
+
+    ctx.textAlign =
+        align;
+
+
+    ctx.textBaseline =
+        "middle";
+
+
+    ctx.fillText(
+        value,
+        x,
+        y
+    );
+
+}
+
+
+function drawPanel(
+    x,
+    y,
+    width,
+    height,
+    fill,
+    border
+) {
+
+    ctx.fillStyle =
+        fill;
+
+
+    ctx.fillRect(
+        x,
+        y,
+        width,
+        height
+    );
+
+
+    ctx.strokeStyle =
+        border;
+
+
+    ctx.lineWidth = 2;
+
+
+    ctx.strokeRect(
+        x,
+        y,
+        width,
+        height
+    );
+
+}
+
+
+/* =========================================================
    DIFFICULTY BOX
 ========================================================= */
 
@@ -3092,8 +3244,10 @@ function drawDifficultyBox(
     let fill =
         difficulty.panel;
 
+
     let border =
         difficulty.border;
+
 
     let textColor =
         difficulty.primary;
@@ -3107,8 +3261,10 @@ function drawDifficultyBox(
         fill =
             difficulty.primary;
 
+
         border =
             difficulty.primary;
+
 
         textColor =
             index === 0
@@ -3125,8 +3281,10 @@ function drawDifficultyBox(
         fill =
             "#141414";
 
+
         border =
             "#333333";
+
 
         textColor =
             "#555555";
@@ -3302,7 +3460,7 @@ function drawDifficulty() {
 
 
 /* =========================================================
-   ROUND MENU
+   ROUND
 ========================================================= */
 
 function drawRound() {
@@ -3505,7 +3663,9 @@ function drawGame() {
     ctx.strokeStyle =
         difficulty.secondary;
 
+
     ctx.lineWidth = 2;
+
 
     ctx.setLineDash([
         12,
@@ -3515,23 +3675,28 @@ function drawGame() {
 
     ctx.beginPath();
 
+
     ctx.moveTo(
         WIDTH / 2,
         0
     );
+
 
     ctx.lineTo(
         WIDTH / 2,
         HEIGHT
     );
 
+
     ctx.stroke();
+
 
     ctx.setLineDash([]);
 
 
     ctx.strokeStyle =
         difficulty.border;
+
 
     ctx.strokeRect(
         0,
@@ -3620,11 +3785,13 @@ function drawGame() {
 
 
     if (
-        state === STATES.PAUSED
+        state ===
+        STATES.PAUSED
     ) {
 
         ctx.fillStyle =
             "rgba(0,0,0,0.70)";
+
 
         ctx.fillRect(
             0,
@@ -3824,7 +3991,7 @@ function drawTokens() {
     drawText(
         "TOKENS",
         WIDTH / 2,
-        85,
+        110,
         48,
         "#ffffff"
     );
@@ -3834,30 +4001,23 @@ function drawTokens() {
         "CURRENT BALANCE: " +
         save.tokens,
         WIDTH / 2,
-        145,
+        170,
         22,
         "#ffffff"
     );
 
 
     drawMenuOption(
-        "GET REDEMPTION CODE",
-        270,
+        "REDEEM TOKENS",
+        300,
         tokenSelection === 0
     );
 
 
     drawMenuOption(
-        "ENTER CODE B",
-        340,
-        tokenSelection === 1
-    );
-
-
-    drawMenuOption(
         "BACK",
-        410,
-        tokenSelection === 2
+        370,
+        tokenSelection === 1
     );
 
 
@@ -3882,7 +4042,7 @@ function drawTokens() {
 
 
         drawText(
-            "REDEMPTION COOLDOWN  " +
+            "COOLDOWN  " +
             String(minutes)
                 .padStart(
                     2,
@@ -3895,7 +4055,7 @@ function drawTokens() {
                     "0"
                 ),
             WIDTH / 2,
-            485,
+            470,
             14,
             "#888888"
         );
@@ -3907,7 +4067,7 @@ function drawTokens() {
         drawText(
             redemptionMessage,
             WIDTH / 2,
-            485,
+            470,
             14,
             "#888888"
         );
@@ -3918,7 +4078,7 @@ function drawTokens() {
     drawText(
         "W / S • ENTER • ESC",
         WIDTH / 2,
-        535,
+        530,
         14,
         "#666666"
     );
@@ -3927,10 +4087,10 @@ function drawTokens() {
 
 
 /* =========================================================
-   CODE A SCREEN
+   REDEMPTION SCREEN
 ========================================================= */
 
-function drawCodeA() {
+function drawRedeem() {
 
     clearScreen(
         "#101010"
@@ -3938,129 +4098,232 @@ function drawCodeA() {
 
 
     drawText(
-        "REDEMPTION CODE",
+        "REDEEM TOKENS",
         WIDTH / 2,
-        60,
+        55,
         38,
         "#ffffff"
     );
 
 
     drawText(
-        "ENTER THIS CODE INTO THE WEBSITE",
+        "TOKENS  " +
+        save.tokens,
         WIDTH / 2,
-        105,
-        15,
-        "#888888"
+        90,
+        17,
+        "#ffffff"
     );
 
 
+    /*
+       Top box
+    */
+
     drawText(
-        "REWARD: +" +
-        REWARD_AMOUNT +
-        " TOKENS",
+        "REDEMPTION CODE",
         WIDTH / 2,
         135,
-        15,
-        "#888888"
+        16,
+        "#aaaaaa"
     );
 
 
     drawPanel(
         45,
-        180,
+        155,
         870,
-        100,
+        88,
+        "#181818",
+        "#555555"
+    );
+
+
+    let displayCode =
+        codeAGenerating
+            ? "GENERATING..."
+            : currentCodeA
+                ? currentCodeA
+                : "NO CODE";
+
+
+    ctx.fillStyle =
+        codeAGenerating
+            ? "#777777"
+            : "#ffffff";
+
+
+    ctx.font =
+        "10px Consolas, monospace";
+
+
+    ctx.textAlign =
+        "center";
+
+
+    ctx.textBaseline =
+        "middle";
+
+
+    ctx.fillText(
+        displayCode,
+        WIDTH / 2,
+        199
+    );
+
+
+    /*
+       Lower box
+    */
+
+    drawText(
+        "TOKEN CODE",
+        WIDTH / 2,
+        275,
+        16,
+        "#aaaaaa"
+    );
+
+
+    drawPanel(
+        45,
+        295,
+        870,
+        88,
         "#181818",
         "#555555"
     );
 
 
     ctx.fillStyle =
-        "#ffffff";
+        codeInput.length > 0
+            ? "#ffffff"
+            : "#666666";
 
 
     ctx.font =
-        "11px Consolas, monospace";
+        "10px Consolas, monospace";
 
 
     ctx.textAlign =
-        "center";
+        "left";
+
 
     ctx.textBaseline =
         "middle";
 
 
+    let inputDisplay =
+        codeInput.length > 0
+            ? codeInput
+            : "TYPE OR CTRL+V TOKEN CODE";
+
+
+    ctx.fillText(
+        inputDisplay,
+        65,
+        339
+    );
+
+
+    /*
+       Selection cursor
+    */
+
     if (
-        codeAGenerating
+        state === STATES.REDEEM
     ) {
+
+        const cursorText =
+            codeInput.length > 0
+                ? codeInput
+                : "";
+
+
+        const cursorWidth =
+            ctx.measureText(
+                cursorText
+            ).width;
+
 
         ctx.fillStyle =
             "#777777";
 
 
-        ctx.fillText(
-            "GENERATING CODE...",
-            WIDTH / 2,
-            230
-        );
-
-    } else if (
-        currentCodeA
-    ) {
-
-        ctx.fillText(
-            currentCodeA,
-            WIDTH / 2,
-            230
-        );
-
-    } else {
-
-        ctx.fillStyle =
-            "#777777";
-
-
-        ctx.fillText(
-            "NO CODE GENERATED",
-            WIDTH / 2,
-            230
+        ctx.fillRect(
+            65 +
+            Math.min(
+                cursorWidth,
+                805
+            ),
+            322,
+            2,
+            34
         );
 
     }
 
 
+    /*
+       Controls
+    */
+
     drawMenuOption(
-        "COPY CODE A",
-        340,
-        codeASelection === 0
+        "COPY REDEMPTION CODE",
+        425,
+        redeemSelection === 0
     );
 
 
     drawMenuOption(
         "CODE ISN'T WORKING — NEW CODE",
-        410,
-        codeASelection === 1
+        475,
+        redeemSelection === 1
     );
 
 
     drawMenuOption(
-        "BACK",
-        480,
-        codeASelection === 2
+        "REDEEM TOKEN CODE",
+        525,
+        redeemSelection === 2
     );
 
 
-    drawText(
-        "ATTEMPTS: " +
-        retryCount +
-        " / " +
-        MAX_RETRIES,
-        WIDTH / 2,
-        535,
-        14,
-        "#666666"
-    );
+    if (
+        redeemSelection === 3
+    ) {
+
+        ctx.fillStyle =
+            "#ffffff";
+
+
+        ctx.fillRect(
+            WIDTH / 2 - 210,
+            548 - 27,
+            420,
+            40
+        );
+
+
+        drawText(
+            "BACK",
+            WIDTH / 2,
+            548,
+            18,
+            "#111111"
+        );
+
+    } else {
+
+        drawText(
+            "BACK",
+            WIDTH / 2,
+            548,
+            18,
+            "#ffffff"
+        );
+
+    }
 
 
     if (
@@ -4070,109 +4333,12 @@ function drawCodeA() {
         drawText(
             redemptionMessage,
             WIDTH / 2,
-            565,
-            12,
+            580,
+            11,
             "#777777"
         );
 
     }
-
-}
-
-
-/* =========================================================
-   CODE B SCREEN
-========================================================= */
-
-function drawCodeB() {
-
-    clearScreen(
-        "#101010"
-    );
-
-
-    drawText(
-        "ENTER CODE B",
-        WIDTH / 2,
-        85,
-        42,
-        "#ffffff"
-    );
-
-
-    drawText(
-        "PASTE THE CODE RETURNED BY THE WEBSITE",
-        WIDTH / 2,
-        130,
-        15,
-        "#888888"
-    );
-
-
-    drawPanel(
-        80,
-        205,
-        800,
-        90,
-        "#181818",
-        "#555555"
-    );
-
-
-    drawText(
-        codeInput.length > 0
-            ? codeInput
-            : "ENTER CODE B",
-        105,
-        250,
-        17,
-        codeInput.length > 0
-            ? "#ffffff"
-            : "#666666",
-        "left"
-    );
-
-
-    drawText(
-        "ENTER TO REDEEM",
-        WIDTH / 2,
-        340,
-        15,
-        "#888888"
-    );
-
-
-    drawText(
-        "BACKSPACE DELETE",
-        WIDTH / 2,
-        375,
-        13,
-        "#666666"
-    );
-
-
-    if (
-        redemptionMessage
-    ) {
-
-        drawText(
-            redemptionMessage,
-            WIDTH / 2,
-            450,
-            14,
-            "#777777"
-        );
-
-    }
-
-
-    drawText(
-        "ESC BACK",
-        WIDTH / 2,
-        530,
-        13,
-        "#555555"
-    );
 
 }
 
@@ -4237,7 +4403,7 @@ function drawCooldown() {
 
 
     drawText(
-        "3 new Code A attempts will be available",
+        "3 new attempts will be available",
         WIDTH / 2,
         350,
         18,
@@ -4333,20 +4499,10 @@ function draw() {
 
 
     if (
-        state === STATES.REDEEM_A
+        state === STATES.REDEEM
     ) {
 
-        drawCodeA();
-        return;
-
-    }
-
-
-    if (
-        state === STATES.REDEEM_B
-    ) {
-
-        drawCodeB();
+        drawRedeem();
         return;
 
     }
@@ -4365,30 +4521,260 @@ function draw() {
 
 
 /* =========================================================
-   UPDATE
+   KEYBOARD
 ========================================================= */
 
-function update(
-    dt
-) {
+const keys = {};
 
-    if (
-        state === STATES.PLAYING
-    ) {
 
-        updatePlayer(dt);
+window.addEventListener(
+    "keydown",
+    function(event) {
 
-        updateAI(dt);
+        keys[
+            event.key
+        ] = true;
 
-        updateBall(dt);
+
+        /*
+           Ctrl+C
+        */
+
+        if (
+            state === STATES.REDEEM &&
+            (
+                event.ctrlKey ||
+                event.metaKey
+            ) &&
+            (
+                event.key === "c" ||
+                event.key === "C"
+            )
+        ) {
+
+            event.preventDefault();
+
+            copyCurrentCodeA();
+
+            return;
+
+        }
+
+
+        /*
+           Ctrl+V
+        */
+
+        if (
+            state === STATES.REDEEM &&
+            (
+                event.ctrlKey ||
+                event.metaKey
+            ) &&
+            (
+                event.key === "v" ||
+                event.key === "V"
+            )
+        ) {
+
+            /*
+               Try to read directly first.
+               If the browser refuses clipboard
+               read access, the hidden textarea
+               will receive the normal paste event.
+            */
+
+            if (
+                navigator.clipboard &&
+                navigator.clipboard.readText
+            ) {
+
+                navigator.clipboard.readText()
+                    .then(
+                        function(value) {
+
+                            if (
+                                typeof value ===
+                                "string"
+                            ) {
+
+                                codeInput =
+                                    value
+                                        .replace(
+                                            /\s+/g,
+                                            ""
+                                        )
+                                        .toUpperCase();
+
+
+                                clipboardInput.value =
+                                    codeInput;
+
+
+                                redemptionMessage =
+                                    "Token code pasted.";
+
+                            }
+
+                        }
+                    )
+                    .catch(
+                        function() {
+
+                            focusClipboardInput();
+
+                        }
+                    );
+
+            }
+
+
+            focusClipboardInput();
+
+            return;
+
+        }
+
+
+        /*
+           Redemption text input
+        */
+
+        if (
+            state === STATES.REDEEM
+        ) {
+
+            if (
+                event.key === "Backspace"
+            ) {
+
+                codeInput =
+                    codeInput.slice(
+                        0,
+                        -1
+                    );
+
+
+                clipboardInput.value =
+                    codeInput;
+
+
+                event.preventDefault();
+
+                return;
+
+            }
+
+
+            if (
+                event.key === "Enter"
+            ) {
+
+                handleEnter(event);
+
+                event.preventDefault();
+
+                return;
+
+            }
+
+
+            if (
+                event.key.length === 1 &&
+                !event.ctrlKey &&
+                !event.metaKey
+            ) {
+
+                codeInput +=
+                    event.key.toUpperCase();
+
+
+                clipboardInput.value =
+                    codeInput;
+
+
+                event.preventDefault();
+
+                return;
+
+            }
+
+        }
+
+
+        /*
+           Space pause
+        */
+
+        if (
+            event.key === " " ||
+            event.code === "Space"
+        ) {
+
+            event.preventDefault();
+
+
+            if (
+                state === STATES.PLAYING
+            ) {
+
+                paused = true;
+
+                state =
+                    STATES.PAUSED;
+
+            } else if (
+                state === STATES.PAUSED
+            ) {
+
+                paused = false;
+
+                state =
+                    STATES.PLAYING;
+
+            }
+
+
+            return;
+
+        }
+
+
+        /*
+           Escape
+        */
+
+        if (
+            event.key === "Escape"
+        ) {
+
+            handleEscape();
+
+            return;
+
+        }
+
+
+        handleEnter(event);
 
     }
+);
 
-}
+
+window.addEventListener(
+    "keyup",
+    function(event) {
+
+        keys[
+            event.key
+        ] = false;
+
+    }
+);
 
 
 /* =========================================================
-   MENU KEYBOARD CONTROL
+   NAVIGATION
 ========================================================= */
 
 window.addEventListener(
@@ -4424,6 +4810,7 @@ window.addEventListener(
 
             }
 
+
             return;
 
         }
@@ -4453,6 +4840,7 @@ window.addEventListener(
                 difficultyMove(1);
 
             }
+
 
             return;
 
@@ -4484,6 +4872,7 @@ window.addEventListener(
 
             }
 
+
             return;
 
         }
@@ -4513,6 +4902,7 @@ window.addEventListener(
                 resultMove(1);
 
             }
+
 
             return;
 
@@ -4544,14 +4934,30 @@ window.addEventListener(
 
             }
 
+
             return;
 
         }
 
 
         if (
-            state === STATES.REDEEM_A
+            state === STATES.REDEEM
         ) {
+
+            /*
+               Only use the arrow/W/S navigation
+               when the user isn't using Ctrl.
+            */
+
+            if (
+                event.ctrlKey ||
+                event.metaKey
+            ) {
+
+                return;
+
+            }
+
 
             if (
                 key === "ArrowUp" ||
@@ -4559,7 +4965,7 @@ window.addEventListener(
                 key === "W"
             ) {
 
-                codeAMove(-1);
+                redeemMove(-1);
 
             }
 
@@ -4570,24 +4976,40 @@ window.addEventListener(
                 key === "S"
             ) {
 
-                codeAMove(1);
+                redeemMove(1);
 
             }
 
 
-            if (
-                key === "c" ||
-                key === "C"
-            ) {
-
-                copyCurrentCodeA();
-
-            }
+            return;
 
         }
 
     }
 );
+
+
+/* =========================================================
+   MAIN UPDATE
+========================================================= */
+
+function update(
+    dt
+) {
+
+    if (
+        state === STATES.PLAYING
+    ) {
+
+        updatePlayer(dt);
+
+        updateAI(dt);
+
+        updateBall(dt);
+
+    }
+
+}
 
 
 /* =========================================================
@@ -4606,7 +5028,8 @@ function loop(
         (
             now -
             previousTime
-        ) / 1000;
+        ) /
+        1000;
 
 
     previousTime =
