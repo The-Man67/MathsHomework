@@ -6,8 +6,7 @@
 <title>Pong</title>
 
 <style>
-html,
-body {
+html, body {
     margin: 0;
     padding: 0;
     width: 100%;
@@ -31,54 +30,286 @@ body {
     background: #181818;
     border: 2px solid #444;
     display: block;
-}
-
-#info {
-    position: fixed;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 16px;
-    pointer-events: none;
+    image-rendering: auto;
 }
 </style>
 </head>
 
 <body>
 
-<div id="info">PONG</div>
-
 <canvas id="game" width="960" height="600"></canvas>
 
 <script>
 
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+/* =========================================================
+   PONG
+   Standalone local HTML game
+========================================================= */
+
+"use strict";
 
 
 /* =========================================================
-   GAME SETTINGS
+   CANVAS
 ========================================================= */
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
 const WIDTH = 960;
 const HEIGHT = 600;
+
+
+/* =========================================================
+   STORAGE
+========================================================= */
+
+const SAVE_KEY = "pong_local_save_v1";
+
+
+function defaultSave() {
+
+    return {
+        tokens: 10,
+        difficulty: 0,
+        unlockedDifficulty: 0,
+        currentRound: 1
+    };
+
+}
+
+
+let save;
+
+
+function loadSave() {
+
+    try {
+
+        const raw = localStorage.getItem(SAVE_KEY);
+
+        if (!raw) {
+
+            save = defaultSave();
+
+            saveGame();
+
+            return;
+
+        }
+
+        const parsed = JSON.parse(raw);
+
+        save = defaultSave();
+
+        if (Number.isFinite(parsed.tokens)) {
+            save.tokens = Math.max(0, Math.floor(parsed.tokens));
+        }
+
+        if (Number.isFinite(parsed.difficulty)) {
+            save.difficulty = Math.max(
+                0,
+                Math.min(2, Math.floor(parsed.difficulty))
+            );
+        }
+
+        if (Number.isFinite(parsed.unlockedDifficulty)) {
+            save.unlockedDifficulty = Math.max(
+                0,
+                Math.min(2, Math.floor(parsed.unlockedDifficulty))
+            );
+        }
+
+        if (Number.isFinite(parsed.currentRound)) {
+            save.currentRound = Math.max(
+                1,
+                Math.min(5, Math.floor(parsed.currentRound))
+            );
+        }
+
+    } catch (error) {
+
+        save = defaultSave();
+
+    }
+
+}
+
+
+function saveGame() {
+
+    try {
+
+        localStorage.setItem(
+            SAVE_KEY,
+            JSON.stringify(save)
+        );
+
+    } catch (error) {
+
+        /* Local storage unavailable.
+           The game still works for this session. */
+
+    }
+
+}
+
+
+loadSave();
+
+
+/* =========================================================
+   DIFFICULTIES
+========================================================= */
+
+const difficulties = [
+    {
+        name: "SLOW",
+        aiSpeed: 300,
+        startingBallSpeed: 350,
+        maximumBallSpeed: 650
+    },
+
+    {
+        name: "NORMAL",
+        aiSpeed: 390,
+        startingBallSpeed: 390,
+        maximumBallSpeed: 760
+    },
+
+    {
+        name: "HARD",
+        aiSpeed: 475,
+        startingBallSpeed: 430,
+        maximumBallSpeed: 900
+    }
+];
+
+
+/* =========================================================
+   ROUNDS
+========================================================= */
+
+const roundCosts = [
+    1,
+    2,
+    3,
+    4,
+    5
+];
+
+
+const winningScores = [
+    5,
+    10,
+    15,
+    20,
+    25
+];
+
+
+/* =========================================================
+   GAME STATES
+========================================================= */
+
+const STATES = {
+
+    MENU: "menu",
+    DIFFICULTY: "difficulty",
+    ROUND: "round",
+    PLAYING: "playing",
+    PAUSED: "paused",
+    RESULT: "result",
+    TOKENS: "tokens",
+    REDEEM: "redeem",
+    COOLDOWN: "cooldown"
+
+};
+
+
+let state = STATES.MENU;
+
+
+/* =========================================================
+   MENU
+========================================================= */
+
+let menuSelection = 0;
+
+
+/* =========================================================
+   DIFFICULTY MENU
+========================================================= */
+
+let difficultySelection =
+    save.difficulty;
+
+
+/* =========================================================
+   ROUND MENU
+========================================================= */
+
+let roundSelection =
+    save.currentRound - 1;
+
+
+/* =========================================================
+   RESULT MENU
+========================================================= */
+
+let resultSelection = 0;
+
+
+/* =========================================================
+   TOKEN MENU
+========================================================= */
+
+let tokenSelection = 0;
+
+
+/* =========================================================
+   REDEMPTION
+========================================================= */
+
+let retryCount = 0;
+
+const MAX_RETRIES = 3;
+
+const COOLDOWN_SECONDS = 300;
+
+let cooldownRemaining = 0;
+
+let cooldownLastUpdate = 0;
+
+
+/* =========================================================
+   CODE B
+   Verification hook
+========================================================= */
+
+/*
+   Code B verification is intentionally kept separate from
+   gameplay.
+
+   The actual Ed25519 public key will be inserted once the
+   Cloudflare signing key has been properly generated and
+   tested.
+
+   No fake cryptographic key is used here.
+*/
+
+let redemptionMessage = "";
+
+
+/* =========================================================
+   PADDLES
+========================================================= */
 
 const PADDLE_WIDTH = 18;
 const PADDLE_HEIGHT = 110;
 
 const PLAYER_X = 40;
 const AI_X = WIDTH - 58;
-
-const BALL_SIZE = 16;
-
-const PLAYER_SPEED = 520;
-
-const AI_SPEED = 390;
-
-
-/* =========================================================
-   GAME VARIABLES
-========================================================= */
 
 let playerY =
     HEIGHT / 2 -
@@ -88,21 +319,39 @@ let aiY =
     HEIGHT / 2 -
     PADDLE_HEIGHT / 2;
 
-let playerScore = 0;
-let aiScore = 0;
 
-let ballX =
-    WIDTH / 2;
+/* =========================================================
+   BALL
+========================================================= */
 
-let ballY =
-    HEIGHT / 2;
+const BALL_SIZE = 16;
+
+let ballX = WIDTH / 2;
+let ballY = HEIGHT / 2;
 
 let ballVX = 0;
 let ballVY = 0;
 
+let ballSpeed = 0;
+
+
+/* =========================================================
+   SCORE
+========================================================= */
+
+let playerScore = 0;
+let aiScore = 0;
+
+
+/* =========================================================
+   GAME STATE
+========================================================= */
+
 let paused = false;
 
-let gameStarted = false;
+let gameRunning = false;
+
+let matchResult = "";
 
 
 /* =========================================================
@@ -119,23 +368,42 @@ window.addEventListener(
         keys[event.key] = true;
 
         if (
-            event.key === " "
+            event.key === " " ||
+            event.code === "Space"
         ) {
 
             event.preventDefault();
 
-            paused = !paused;
+            if (state === STATES.PLAYING) {
+
+                paused = !paused;
+
+                if (paused) {
+
+                    state = STATES.PAUSED;
+
+                }
+
+            } else if (state === STATES.PAUSED) {
+
+                paused = false;
+
+                state = STATES.PLAYING;
+
+            }
 
         }
+
 
         if (
-            event.key === "r" ||
-            event.key === "R"
+            event.key === "Escape"
         ) {
 
-            resetGame();
+            handleEscape();
 
         }
+
+        handleEnter(event);
 
     }
 );
@@ -152,41 +420,375 @@ window.addEventListener(
 
 
 /* =========================================================
-   BALL RESET
+   ENTER HANDLING
 ========================================================= */
 
-function resetBall(direction) {
+function handleEnter(event) {
 
-    ballX =
-        WIDTH / 2;
-
-    ballY =
-        HEIGHT / 2;
+    if (event.key !== "Enter") {
+        return;
+    }
 
 
-    const speed = 380;
+    if (state === STATES.MENU) {
 
-    const angle =
-        Math.random() * 0.8 - 0.4;
+        if (menuSelection === 0) {
+
+            state = STATES.DIFFICULTY;
+
+        } else if (menuSelection === 1) {
+
+            state = STATES.TOKENS;
+
+        }
+
+        return;
+
+    }
 
 
-    ballVX =
-        speed * direction;
+    if (state === STATES.DIFFICULTY) {
 
-    ballVY =
-        speed * angle;
+        chooseDifficulty();
+
+        return;
+
+    }
+
+
+    if (state === STATES.ROUND) {
+
+        chooseRound();
+
+        return;
+
+    }
+
+
+    if (state === STATES.RESULT) {
+
+        chooseResult();
+
+        return;
+
+    }
+
+
+    if (state === STATES.TOKENS) {
+
+        chooseTokenMenu();
+
+        return;
+
+    }
+
+
+    if (state === STATES.REDEEM) {
+
+        return;
+
+    }
+
+
+    if (state === STATES.PAUSED) {
+
+        paused = false;
+
+        state = STATES.PLAYING;
+
+        return;
+
+    }
 
 }
 
 
 /* =========================================================
-   RESET GAME
+   ESCAPE
 ========================================================= */
 
-function resetGame() {
+function handleEscape() {
+
+    if (state === STATES.PLAYING) {
+
+        paused = true;
+
+        state = STATES.PAUSED;
+
+        return;
+
+    }
+
+
+    if (state === STATES.PAUSED) {
+
+        paused = false;
+
+        state = STATES.PLAYING;
+
+        return;
+
+    }
+
+
+    if (
+        state === STATES.DIFFICULTY ||
+        state === STATES.TOKENS
+    ) {
+
+        state = STATES.MENU;
+
+        return;
+
+    }
+
+
+    if (state === STATES.ROUND) {
+
+        state = STATES.DIFFICULTY;
+
+        return;
+
+    }
+
+
+    if (
+        state === STATES.REDEEM ||
+        state === STATES.COOLDOWN
+    ) {
+
+        state = STATES.TOKENS;
+
+        return;
+
+    }
+
+
+    if (state === STATES.RESULT) {
+
+        state = STATES.ROUND;
+
+    }
+
+}
+
+
+/* =========================================================
+   MENU NAVIGATION
+========================================================= */
+
+function menuMove(direction) {
+
+    menuSelection += direction;
+
+    if (menuSelection < 0) {
+
+        menuSelection = 1;
+
+    }
+
+    if (menuSelection > 1) {
+
+        menuSelection = 0;
+
+    }
+
+}
+
+
+/* =========================================================
+   DIFFICULTY NAVIGATION
+========================================================= */
+
+function difficultyMove(direction) {
+
+    difficultySelection += direction;
+
+    if (difficultySelection < 0) {
+
+        difficultySelection = 0;
+
+    }
+
+    if (
+        difficultySelection >
+        save.unlockedDifficulty
+    ) {
+
+        difficultySelection =
+            save.unlockedDifficulty;
+
+    }
+
+    if (difficultySelection > 2) {
+
+        difficultySelection = 2;
+
+    }
+
+}
+
+
+/* =========================================================
+   ROUND NAVIGATION
+========================================================= */
+
+function roundMove(direction) {
+
+    roundSelection += direction;
+
+    if (roundSelection < 0) {
+
+        roundSelection = 0;
+
+    }
+
+    if (roundSelection > 4) {
+
+        roundSelection = 4;
+
+    }
+
+}
+
+
+/* =========================================================
+   RESULT NAVIGATION
+========================================================= */
+
+function resultMove(direction) {
+
+    resultSelection += direction;
+
+    if (resultSelection < 0) {
+
+        resultSelection = 1;
+
+    }
+
+    if (resultSelection > 1) {
+
+        resultSelection = 0;
+
+    }
+
+}
+
+
+/* =========================================================
+   TOKEN MENU NAVIGATION
+========================================================= */
+
+function tokenMove(direction) {
+
+    tokenSelection += direction;
+
+    if (tokenSelection < 0) {
+
+        tokenSelection = 1;
+
+    }
+
+    if (tokenSelection > 1) {
+
+        tokenSelection = 0;
+
+    }
+
+}
+
+
+/* =========================================================
+   DIFFICULTY CHOICE
+========================================================= */
+
+function chooseDifficulty() {
+
+    save.difficulty =
+        difficultySelection;
+
+    saveGame();
+
+    roundSelection =
+        save.currentRound - 1;
+
+    state = STATES.ROUND;
+
+}
+
+
+/* =========================================================
+   ROUND CHOICE
+========================================================= */
+
+function chooseRound() {
+
+    const selectedRound =
+        roundSelection + 1;
+
+    const cost =
+        roundCosts[roundSelection];
+
+
+    if (save.tokens < cost) {
+
+        redemptionMessage =
+            "You need " +
+            cost +
+            " token" +
+            (cost === 1 ? "" : "s") +
+            " to play this round.";
+
+        state = STATES.TOKENS;
+
+        return;
+
+    }
+
+
+    save.currentRound =
+        selectedRound;
+
+    saveGame();
+
+    startRound(
+        selectedRound
+    );
+
+}
+
+
+/* =========================================================
+   START ROUND
+========================================================= */
+
+function startRound(roundNumber) {
+
+    const cost =
+        roundCosts[roundNumber - 1];
+
+
+    if (save.tokens < cost) {
+
+        state = STATES.TOKENS;
+
+        return;
+
+    }
+
+
+    /*
+       Pay the round cost immediately.
+    */
+
+    save.tokens -= cost;
+
+    saveGame();
+
 
     playerScore = 0;
     aiScore = 0;
+
 
     playerY =
         HEIGHT / 2 -
@@ -196,9 +798,13 @@ function resetGame() {
         HEIGHT / 2 -
         PADDLE_HEIGHT / 2;
 
+
     paused = false;
 
-    gameStarted = true;
+    gameRunning = true;
+
+    matchResult = "";
+
 
     resetBall(
         Math.random() < 0.5
@@ -206,11 +812,64 @@ function resetGame() {
             : 1
     );
 
+
+    state = STATES.PLAYING;
+
 }
 
 
 /* =========================================================
-   PLAYER
+   RESET BALL
+========================================================= */
+
+function resetBall(direction) {
+
+    const difficulty =
+        difficulties[save.difficulty];
+
+    const roundMultiplier =
+        1 +
+        (
+            save.currentRound - 1
+        ) *
+        0.08;
+
+
+    ballX =
+        WIDTH / 2;
+
+    ballY =
+        HEIGHT / 2;
+
+
+    ballSpeed =
+        Math.min(
+            difficulty.startingBallSpeed *
+            roundMultiplier,
+            difficulty.maximumBallSpeed
+        );
+
+
+    const angle =
+        Math.random() *
+        0.75 -
+        0.375;
+
+
+    ballVX =
+        ballSpeed *
+        direction;
+
+
+    ballVY =
+        ballSpeed *
+        angle;
+
+}
+
+
+/* =========================================================
+   PLAYER UPDATE
 ========================================================= */
 
 function updatePlayer(dt) {
@@ -240,15 +899,16 @@ function updatePlayer(dt) {
     }
 
 
+    const playerSpeed = 540;
+
+
     playerY +=
         movement *
-        PLAYER_SPEED *
+        playerSpeed *
         dt;
 
 
-    if (
-        playerY < 0
-    ) {
+    if (playerY < 0) {
 
         playerY = 0;
 
@@ -271,41 +931,56 @@ function updatePlayer(dt) {
 
 
 /* =========================================================
-   AI
+   AI UPDATE
 ========================================================= */
 
 function updateAI(dt) {
 
-    const target =
+    const difficulty =
+        difficulties[save.difficulty];
+
+
+    let target =
         ballY -
         PADDLE_HEIGHT / 2;
 
 
-    if (
-        aiY < target
-    ) {
+    /*
+       Higher rounds make the AI slightly more responsive.
+    */
+
+    const roundMultiplier =
+        1 +
+        (
+            save.currentRound - 1
+        ) *
+        0.035;
+
+
+    const speed =
+        difficulty.aiSpeed *
+        roundMultiplier;
+
+
+    if (aiY < target) {
 
         aiY +=
-            AI_SPEED *
+            speed *
             dt;
 
     }
 
 
-    if (
-        aiY > target
-    ) {
+    if (aiY > target) {
 
         aiY -=
-            AI_SPEED *
+            speed *
             dt;
 
     }
 
 
-    if (
-        aiY < 0
-    ) {
+    if (aiY < 0) {
 
         aiY = 0;
 
@@ -328,7 +1003,7 @@ function updateAI(dt) {
 
 
 /* =========================================================
-   BALL
+   BALL UPDATE
 ========================================================= */
 
 function updateBall(dt) {
@@ -342,7 +1017,9 @@ function updateBall(dt) {
         dt;
 
 
-    /* TOP */
+    /*
+       TOP
+    */
 
     if (
         ballY -
@@ -359,7 +1036,9 @@ function updateBall(dt) {
     }
 
 
-    /* BOTTOM */
+    /*
+       BOTTOM
+    */
 
     if (
         ballY +
@@ -377,7 +1056,9 @@ function updateBall(dt) {
     }
 
 
-    /* PLAYER PADDLE */
+    /*
+       PLAYER PADDLE
+    */
 
     if (
         ballVX < 0 &&
@@ -401,42 +1082,17 @@ function updateBall(dt) {
             BALL_SIZE / 2;
 
 
-        const relative =
-            (
-                ballY -
-                (
-                    playerY +
-                    PADDLE_HEIGHT / 2
-                )
-            ) /
-            (
-                PADDLE_HEIGHT / 2
-            );
-
-
-        const speed =
-            Math.min(
-                Math.hypot(
-                    ballVX,
-                    ballVY
-                ) * 1.05,
-                900
-            );
-
-
-        ballVX =
-            speed;
-
-
-        ballVY =
-            relative *
-            speed *
-            0.8;
+        bounceFromPaddle(
+            playerY,
+            true
+        );
 
     }
 
 
-    /* AI PADDLE */
+    /*
+       AI PADDLE
+    */
 
     if (
         ballVX > 0 &&
@@ -459,64 +1115,41 @@ function updateBall(dt) {
             BALL_SIZE / 2;
 
 
-        const relative =
-            (
-                ballY -
-                (
-                    aiY +
-                    PADDLE_HEIGHT / 2
-                )
-            ) /
-            (
-                PADDLE_HEIGHT / 2
-            );
-
-
-        const speed =
-            Math.min(
-                Math.hypot(
-                    ballVX,
-                    ballVY
-                ) * 1.05,
-                900
-            );
-
-
-        ballVX =
-            -speed;
-
-
-        ballVY =
-            relative *
-            speed *
-            0.8;
+        bounceFromPaddle(
+            aiY,
+            false
+        );
 
     }
 
 
-    /* PLAYER SCORED */
+    /*
+       AI SCORES
+    */
 
     if (
-        ballX < -30
+        ballX < -40
     ) {
 
         aiScore++;
 
-        resetBall(1);
+        checkScore();
 
     }
 
 
-    /* PLAYER SCORED */
+    /*
+       PLAYER SCORES
+    */
 
     if (
         ballX >
-        WIDTH + 30
+        WIDTH + 40
     ) {
 
         playerScore++;
 
-        resetBall(-1);
+        checkScore();
 
     }
 
@@ -524,13 +1157,464 @@ function updateBall(dt) {
 
 
 /* =========================================================
-   DRAW BACKGROUND
+   PADDLE BOUNCE
 ========================================================= */
 
-function drawBackground() {
+function bounceFromPaddle(
+    paddleY,
+    playerSide
+) {
+
+    const difficulty =
+        difficulties[save.difficulty];
+
+
+    const relative =
+        (
+            ballY -
+            (
+                paddleY +
+                PADDLE_HEIGHT / 2
+            )
+        ) /
+        (
+            PADDLE_HEIGHT / 2
+        );
+
+
+    ballSpeed =
+        Math.min(
+            ballSpeed * 1.045,
+            difficulty.maximumBallSpeed
+        );
+
+
+    ballVY =
+        relative *
+        ballSpeed *
+        0.82;
+
+
+    if (playerSide) {
+
+        ballVX =
+            Math.sqrt(
+                Math.max(
+                    0,
+                    ballSpeed * ballSpeed -
+                    ballVY * ballVY
+                )
+            );
+
+    } else {
+
+        ballVX =
+            -Math.sqrt(
+                Math.max(
+                    0,
+                    ballSpeed * ballSpeed -
+                    ballVY * ballVY
+                )
+            );
+
+    }
+
+}
+
+
+/* =========================================================
+   SCORE CHECK
+========================================================= */
+
+function checkScore() {
+
+    const target =
+        winningScores[
+            save.currentRound - 1
+        ];
+
+
+    if (
+        playerScore >= target
+    ) {
+
+        finishRound(true);
+
+        return;
+
+    }
+
+
+    if (
+        aiScore >= target
+    ) {
+
+        finishRound(false);
+
+        return;
+
+    }
+
+
+    resetBall(
+        playerScore > aiScore
+            ? -1
+            : 1
+    );
+
+}
+
+
+/* =========================================================
+   FINISH ROUND
+========================================================= */
+
+function finishRound(playerWon) {
+
+    gameRunning = false;
+
+    matchResult =
+        playerWon
+            ? "WIN"
+            : "LOSS";
+
+
+    /*
+       Winning refunds the cost of the round.
+    */
+
+    if (playerWon) {
+
+        const cost =
+            roundCosts[
+                save.currentRound - 1
+            ];
+
+        save.tokens += cost;
+
+    }
+
+
+    /*
+       Completing round 5 unlocks the next
+       difficulty.
+    */
+
+    if (
+        playerWon &&
+        save.currentRound === 5
+    ) {
+
+        if (
+            save.unlockedDifficulty < 2
+        ) {
+
+            save.unlockedDifficulty++;
+
+        }
+
+    }
+
+
+    saveGame();
+
+
+    resultSelection = 0;
+
+    state = STATES.RESULT;
+
+}
+
+
+/* =========================================================
+   RESULT MENU
+========================================================= */
+
+function chooseResult() {
+
+    if (
+        resultSelection === 0
+    ) {
+
+        if (
+            matchResult === "WIN" &&
+            save.currentRound < 5
+        ) {
+
+            save.currentRound++;
+
+            saveGame();
+
+        }
+
+
+        const cost =
+            roundCosts[
+                save.currentRound - 1
+            ];
+
+
+        if (
+            save.tokens < cost
+        ) {
+
+            state = STATES.TOKENS;
+
+            return;
+
+        }
+
+
+        startRound(
+            save.currentRound
+        );
+
+
+    } else {
+
+        state = STATES.MENU;
+
+    }
+
+}
+
+
+/* =========================================================
+   TOKEN MENU
+========================================================= */
+
+function chooseTokenMenu() {
+
+    if (
+        tokenSelection === 0
+    ) {
+
+        state = STATES.REDEEM;
+
+    } else {
+
+        state = STATES.MENU;
+
+    }
+
+}
+
+
+/* =========================================================
+   COOLDOWN
+========================================================= */
+
+function beginCooldown() {
+
+    cooldownRemaining =
+        COOLDOWN_SECONDS;
+
+    cooldownLastUpdate =
+        performance.now();
+
+    state = STATES.COOLDOWN;
+
+}
+
+
+function updateCooldown(now) {
+
+    if (
+        state !== STATES.COOLDOWN
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        cooldownLastUpdate === 0
+    ) {
+
+        cooldownLastUpdate = now;
+
+        return;
+
+    }
+
+
+    const elapsed =
+        (
+            now -
+            cooldownLastUpdate
+        ) / 1000;
+
+
+    cooldownLastUpdate =
+        now;
+
+
+    cooldownRemaining -=
+        elapsed;
+
+
+    if (
+        cooldownRemaining <= 0
+    ) {
+
+        cooldownRemaining = 0;
+
+        retryCount = 0;
+
+        redemptionMessage =
+            "Cooldown complete. You have 3 new attempts.";
+
+        state = STATES.REDEEM;
+
+    }
+
+}
+
+
+/* =========================================================
+   REDEMPTION RETRY
+========================================================= */
+
+function requestNewCode() {
+
+    if (
+        retryCount >=
+        MAX_RETRIES
+    ) {
+
+        beginCooldown();
+
+        return;
+
+    }
+
+
+    retryCount++;
+
+    redemptionMessage =
+        "New redemption attempt " +
+        retryCount +
+        " of " +
+        MAX_RETRIES +
+        ".";
+
+
+    /*
+       The actual Code A generation and
+       Code B verification will be connected
+       to the Cloudflare redemption system here.
+    */
+
+}
+
+
+/* =========================================================
+   CODE B INPUT
+========================================================= */
+
+let codeInput = "";
+
+
+function handleTextInput(event) {
+
+    if (
+        state !== STATES.REDEEM
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        event.key === "Backspace"
+    ) {
+
+        codeInput =
+            codeInput.slice(
+                0,
+                -1
+            );
+
+        event.preventDefault();
+
+        return;
+
+    }
+
+
+    if (
+        event.key === "Enter"
+    ) {
+
+        attemptCodeB();
+
+        event.preventDefault();
+
+        return;
+
+    }
+
+
+    if (
+        event.key.length === 1
+    ) {
+
+        if (
+            codeInput.length < 300
+        ) {
+
+            codeInput +=
+                event.key.toUpperCase();
+
+        }
+
+        event.preventDefault();
+
+    }
+
+}
+
+
+window.addEventListener(
+    "keydown",
+    handleTextInput
+);
+
+
+/* =========================================================
+   CODE B ATTEMPT
+========================================================= */
+
+function attemptCodeB() {
+
+    if (
+        codeInput.trim().length === 0
+    ) {
+
+        redemptionMessage =
+            "Enter a Code B first.";
+
+        return;
+
+    }
+
+
+    redemptionMessage =
+        "Code B verification will be connected to the signing key.";
+
+}
+
+
+/* =========================================================
+   DRAW HELPERS
+========================================================= */
+
+function clearScreen() {
 
     ctx.fillStyle =
-        "#181818";
+        "#101010";
 
     ctx.fillRect(
         0,
@@ -539,6 +1623,385 @@ function drawBackground() {
         HEIGHT
     );
 
+}
+
+
+function text(
+    value,
+    x,
+    y,
+    size = 24,
+    align = "center"
+) {
+
+    ctx.fillStyle =
+        "#ffffff";
+
+    ctx.font =
+        "bold " +
+        size +
+        "px Arial";
+
+    ctx.textAlign =
+        align;
+
+    ctx.textBaseline =
+        "middle";
+
+    ctx.fillText(
+        value,
+        x,
+        y
+    );
+
+}
+
+
+function panel(
+    x,
+    y,
+    width,
+    height
+) {
+
+    ctx.fillStyle =
+        "#181818";
+
+    ctx.fillRect(
+        x,
+        y,
+        width,
+        height
+    );
+
+
+    ctx.strokeStyle =
+        "#444444";
+
+    ctx.lineWidth = 2;
+
+    ctx.strokeRect(
+        x,
+        y,
+        width,
+        height
+    );
+
+}
+
+
+function option(
+    label,
+    y,
+    selected
+) {
+
+    if (selected) {
+
+        ctx.fillStyle =
+            "#ffffff";
+
+        ctx.fillRect(
+            WIDTH / 2 - 210,
+            y - 27,
+            420,
+            54
+        );
+
+        ctx.fillStyle =
+            "#111111";
+
+    } else {
+
+        ctx.fillStyle =
+            "#ffffff";
+
+    }
+
+
+    ctx.font =
+        "bold 24px Arial";
+
+    ctx.textAlign =
+        "center";
+
+    ctx.textBaseline =
+        "middle";
+
+    ctx.fillText(
+        label,
+        WIDTH / 2,
+        y
+    );
+
+}
+
+
+/* =========================================================
+   DRAW MAIN MENU
+========================================================= */
+
+function drawMenu() {
+
+    clearScreen();
+
+
+    text(
+        "PONG",
+        WIDTH / 2,
+        125,
+        64
+    );
+
+
+    text(
+        "TOKENS  " + save.tokens,
+        WIDTH / 2,
+        180,
+        20
+    );
+
+
+    option(
+        "PLAY",
+        285,
+        menuSelection === 0
+    );
+
+
+    option(
+        "TOKENS",
+        355,
+        menuSelection === 1
+    );
+
+
+    text(
+        "W / S or ↑ / ↓",
+        WIDTH / 2,
+        480,
+        16
+    );
+
+
+    text(
+        "ENTER SELECTS",
+        WIDTH / 2,
+        510,
+        14
+    );
+
+}
+
+
+/* =========================================================
+   DRAW DIFFICULTY
+========================================================= */
+
+function drawDifficulty() {
+
+    clearScreen();
+
+
+    text(
+        "DIFFICULTY",
+        WIDTH / 2,
+        100,
+        46
+    );
+
+
+    option(
+        "SLOW",
+        225,
+        difficultySelection === 0
+    );
+
+
+    option(
+        "NORMAL",
+        305,
+        difficultySelection === 1
+    );
+
+
+    option(
+        "HARD",
+        385,
+        difficultySelection === 2
+    );
+
+
+    if (
+        save.unlockedDifficulty < 2
+    ) {
+
+        for (
+            let i = save.unlockedDifficulty + 1;
+            i < 3;
+            i++
+        ) {
+
+            ctx.fillStyle =
+                "#666666";
+
+            ctx.font =
+                "14px Arial";
+
+            ctx.textAlign =
+                "center";
+
+            ctx.fillText(
+                "LOCKED",
+                WIDTH / 2 + 145,
+                225 + (
+                    i * 80
+                )
+            );
+
+        }
+
+    }
+
+
+    text(
+        "ENTER SELECTS   •   ESC BACK",
+        WIDTH / 2,
+        505,
+        14
+    );
+
+}
+
+
+/* =========================================================
+   DRAW ROUND MENU
+========================================================= */
+
+function drawRound() {
+
+    clearScreen();
+
+
+    text(
+        "SELECT ROUND",
+        WIDTH / 2,
+        85,
+        44
+    );
+
+
+    text(
+        "TOKENS  " + save.tokens,
+        WIDTH / 2,
+        130,
+        18
+    );
+
+
+    for (
+        let i = 0;
+        i < 5;
+        i++
+    ) {
+
+        const round =
+            i + 1;
+
+        const cost =
+            roundCosts[i];
+
+        const y =
+            200 +
+            i * 65;
+
+
+        const affordable =
+            save.tokens >= cost;
+
+
+        const selected =
+            roundSelection === i;
+
+
+        if (selected && affordable) {
+
+            ctx.fillStyle =
+                "#ffffff";
+
+            ctx.fillRect(
+                WIDTH / 2 - 220,
+                y - 24,
+                440,
+                48
+            );
+
+            ctx.fillStyle =
+                "#111111";
+
+        } else {
+
+            ctx.fillStyle =
+                affordable
+                    ? "#ffffff"
+                    : "#555555";
+
+        }
+
+
+        ctx.font =
+            "bold 21px Arial";
+
+        ctx.textAlign =
+            "center";
+
+        ctx.textBaseline =
+            "middle";
+
+
+        ctx.fillText(
+            "ROUND " +
+            round +
+            "    " +
+            cost +
+            " TOKEN" +
+            (
+                cost === 1
+                    ? ""
+                    : "S"
+            ),
+            WIDTH / 2,
+            y
+        );
+
+    }
+
+
+    text(
+        "FIRST TO " +
+        winningScores[
+            roundSelection
+        ],
+        WIDTH / 2,
+        535,
+        14
+    );
+
+}
+
+
+/* =========================================================
+   DRAW PLAYING FIELD
+========================================================= */
+
+function drawGame() {
+
+    clearScreen();
+
+
+    /*
+       Centre line
+    */
 
     ctx.strokeStyle =
         "#333333";
@@ -568,6 +2031,10 @@ function drawBackground() {
     ctx.setLineDash([]);
 
 
+    /*
+       Border
+    */
+
     ctx.strokeStyle =
         "#444444";
 
@@ -578,22 +2045,14 @@ function drawBackground() {
         HEIGHT
     );
 
-}
 
-
-/* =========================================================
-   DRAW
-========================================================= */
-
-function draw() {
-
-    drawBackground();
-
-
-    /* PLAYER */
+    /*
+       Paddles
+    */
 
     ctx.fillStyle =
         "#ffffff";
+
 
     ctx.fillRect(
         PLAYER_X,
@@ -603,8 +2062,6 @@ function draw() {
     );
 
 
-    /* AI */
-
     ctx.fillRect(
         AI_X,
         aiY,
@@ -613,7 +2070,9 @@ function draw() {
     );
 
 
-    /* BALL */
+    /*
+       Ball
+    */
 
     ctx.fillRect(
         ballX -
@@ -625,85 +2084,54 @@ function draw() {
     );
 
 
-    /* SCORE */
+    /*
+       Score
+    */
 
-    ctx.font =
-        "bold 48px Arial";
-
-    ctx.textAlign =
-        "center";
-
-    ctx.fillText(
+    text(
         playerScore,
         WIDTH / 2 - 70,
-        65
+        55,
+        42
     );
 
-    ctx.fillText(
+
+    text(
         aiScore,
         WIDTH / 2 + 70,
-        65
+        55,
+        42
     );
 
 
-    /* START MESSAGE */
+    /*
+       Round
+    */
 
-    if (
-        !gameStarted
-    ) {
-
-        ctx.fillStyle =
-            "rgba(0,0,0,0.7)";
-
-        ctx.fillRect(
-            0,
-            0,
-            WIDTH,
-            HEIGHT
-        );
+    text(
+        "ROUND " +
+        save.currentRound,
+        WIDTH / 2,
+        HEIGHT - 25,
+        14
+    );
 
 
-        ctx.fillStyle =
-            "#ffffff";
+    /*
+       Tokens
+    */
 
-        ctx.font =
-            "bold 40px Arial";
-
-        ctx.fillText(
-            "PONG",
-            WIDTH / 2,
-            HEIGHT / 2 - 50
-        );
-
-
-        ctx.font =
-            "20px Arial";
-
-        ctx.fillText(
-            "Press ENTER to start",
-            WIDTH / 2,
-            HEIGHT / 2 + 5
-        );
+    text(
+        "TOKENS " +
+        save.tokens,
+        20,
+        22,
+        15,
+        "left"
+    );
 
 
-        ctx.font =
-            "16px Arial";
-
-        ctx.fillText(
-            "W / S or ↑ / ↓ to move",
-            WIDTH / 2,
-            HEIGHT / 2 + 40
-        );
-
-    }
-
-
-    /* PAUSE */
-
-    if (
-        paused &&
-        gameStarted
-    ) {
+    if (state === STATES.PAUSED) {
 
         ctx.fillStyle =
             "rgba(0,0,0,0.65)";
@@ -716,17 +2144,484 @@ function draw() {
         );
 
 
-        ctx.fillStyle =
-            "#ffffff";
-
-        ctx.font =
-            "bold 40px Arial";
-
-        ctx.fillText(
+        text(
             "PAUSED",
             WIDTH / 2,
-            HEIGHT / 2
+            HEIGHT / 2,
+            48
         );
+
+
+        text(
+            "SPACE TO RESUME",
+            WIDTH / 2,
+            HEIGHT / 2 + 55,
+            16
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   DRAW RESULT
+========================================================= */
+
+function drawResult() {
+
+    clearScreen();
+
+
+    const won =
+        matchResult === "WIN";
+
+
+    text(
+        won
+            ? "ROUND COMPLETE"
+            : "ROUND LOST",
+        WIDTH / 2,
+        125,
+        44
+    );
+
+
+    text(
+        playerScore +
+        "  -  " +
+        aiScore,
+        WIDTH / 2,
+        190,
+        42
+    );
+
+
+    if (won) {
+
+        text(
+            "TOKENS " +
+            save.tokens,
+            WIDTH / 2,
+            245,
+            18
+        );
+
+    }
+
+
+    if (
+        won &&
+        save.currentRound === 5
+    ) {
+
+        text(
+            save.difficulty < 2
+                ? "NEXT DIFFICULTY UNLOCKED"
+                : "ALL DIFFICULTIES COMPLETE",
+            WIDTH / 2,
+            290,
+            18
+        );
+
+    }
+
+
+    if (
+        won &&
+        save.currentRound < 5
+    ) {
+
+        option(
+            "NEXT ROUND",
+            370,
+            resultSelection === 0
+        );
+
+    } else {
+
+        option(
+            "PLAY AGAIN",
+            370,
+            resultSelection === 0
+        );
+
+    }
+
+
+    option(
+        "MAIN MENU",
+        440,
+        resultSelection === 1
+    );
+
+
+    text(
+        "ENTER SELECTS",
+        WIDTH / 2,
+        510,
+        14
+    );
+
+}
+
+
+/* =========================================================
+   DRAW TOKEN MENU
+========================================================= */
+
+function drawTokens() {
+
+    clearScreen();
+
+
+    text(
+        "TOKENS",
+        WIDTH / 2,
+        100,
+        48
+    );
+
+
+    text(
+        "CURRENT BALANCE: " +
+        save.tokens,
+        WIDTH / 2,
+        160,
+        22
+    );
+
+
+    option(
+        "REDEEM CODE",
+        285,
+        tokenSelection === 0
+    );
+
+
+    option(
+        "BACK",
+        355,
+        tokenSelection === 1
+    );
+
+
+    if (
+        redemptionMessage
+    ) {
+
+        text(
+            redemptionMessage,
+            WIDTH / 2,
+            455,
+            15
+        );
+
+    }
+
+
+    text(
+        "W / S • ENTER • ESC",
+        WIDTH / 2,
+        515,
+        14
+    );
+
+}
+
+
+/* =========================================================
+   DRAW REDEEM
+========================================================= */
+
+function drawRedeem() {
+
+    clearScreen();
+
+
+    text(
+        "REDEEM TOKENS",
+        WIDTH / 2,
+        85,
+        42
+    );
+
+
+    text(
+        "TOKENS  " +
+        save.tokens,
+        WIDTH / 2,
+        130,
+        18
+    );
+
+
+    ctx.fillStyle =
+        "#181818";
+
+    ctx.fillRect(
+        100,
+        205,
+        760,
+        80
+    );
+
+
+    ctx.strokeStyle =
+        "#555555";
+
+    ctx.strokeRect(
+        100,
+        205,
+        760,
+        80
+    );
+
+
+    const displayed =
+        codeInput.length > 0
+            ? codeInput
+            : "ENTER CODE B";
+
+
+    ctx.fillStyle =
+        codeInput.length > 0
+            ? "#ffffff"
+            : "#666666";
+
+    ctx.font =
+        "18px Arial";
+
+    ctx.textAlign =
+        "left";
+
+    ctx.textBaseline =
+        "middle";
+
+
+    ctx.fillText(
+        displayed,
+        125,
+        245
+    );
+
+
+    text(
+        "ENTER TO REDEEM",
+        WIDTH / 2,
+        330,
+        15
+    );
+
+
+    option(
+        "CODE ISN'T WORKING",
+        410,
+        false
+    );
+
+
+    text(
+        "RETRIES: " +
+        retryCount +
+        " / " +
+        MAX_RETRIES,
+        WIDTH / 2,
+        470,
+        15
+    );
+
+
+    if (
+        redemptionMessage
+    ) {
+
+        text(
+            redemptionMessage,
+            WIDTH / 2,
+            520,
+            13
+        );
+
+    }
+
+
+    text(
+        "ESC BACK",
+        WIDTH / 2,
+        555,
+        13
+    );
+
+}
+
+
+/* =========================================================
+   DRAW COOLDOWN
+========================================================= */
+
+function drawCooldown() {
+
+    clearScreen();
+
+
+    text(
+        "REDEMPTION COOLDOWN",
+        WIDTH / 2,
+        150,
+        38
+    );
+
+
+    const totalSeconds =
+        Math.ceil(
+            cooldownRemaining
+        );
+
+
+    const minutes =
+        Math.floor(
+            totalSeconds / 60
+        );
+
+
+    const seconds =
+        totalSeconds % 60;
+
+
+    const timer =
+        String(minutes)
+            .padStart(2, "0") +
+        ":" +
+        String(seconds)
+            .padStart(2, "0");
+
+
+    text(
+        timer,
+        WIDTH / 2,
+        270,
+        64
+    );
+
+
+    text(
+        "After the cooldown, you receive",
+        WIDTH / 2,
+        350,
+        18
+    );
+
+
+    text(
+        "3 new redemption attempts.",
+        WIDTH / 2,
+        385,
+        18
+    );
+
+
+    text(
+        "ESC BACK",
+        WIDTH / 2,
+        500,
+        14
+    );
+
+}
+
+
+/* =========================================================
+   DRAW
+========================================================= */
+
+function draw() {
+
+    if (
+        state === STATES.MENU
+    ) {
+
+        drawMenu();
+
+        return;
+
+    }
+
+
+    if (
+        state === STATES.DIFFICULTY
+    ) {
+
+        drawDifficulty();
+
+        return;
+
+    }
+
+
+    if (
+        state === STATES.ROUND
+    ) {
+
+        drawRound();
+
+        return;
+
+    }
+
+
+    if (
+        state === STATES.PLAYING ||
+        state === STATES.PAUSED
+    ) {
+
+        drawGame();
+
+        return;
+
+    }
+
+
+    if (
+        state === STATES.RESULT
+    ) {
+
+        drawResult();
+
+        return;
+
+    }
+
+
+    if (
+        state === STATES.TOKENS
+    ) {
+
+        drawTokens();
+
+        return;
+
+    }
+
+
+    if (
+        state === STATES.REDEEM
+    ) {
+
+        drawRedeem();
+
+        return;
+
+    }
+
+
+    if (
+        state === STATES.COOLDOWN
+    ) {
+
+        drawCooldown();
+
+        return;
 
     }
 
@@ -740,43 +2635,223 @@ function draw() {
 function update(dt) {
 
     if (
-        !gameStarted ||
-        paused
+        state === STATES.PLAYING
     ) {
 
-        return;
+        updatePlayer(dt);
+
+        updateAI(dt);
+
+        updateBall(dt);
 
     }
-
-
-    updatePlayer(dt);
-
-    updateAI(dt);
-
-    updateBall(dt);
 
 }
 
 
 /* =========================================================
-   MAIN LOOP
+   MENU KEYBOARD CONTROL
+========================================================= */
+
+window.addEventListener(
+    "keydown",
+    function(event) {
+
+        const key =
+            event.key;
+
+
+        if (
+            state === STATES.MENU
+        ) {
+
+            if (
+                key === "ArrowUp" ||
+                key === "w" ||
+                key === "W"
+            ) {
+
+                menuMove(-1);
+
+            }
+
+
+            if (
+                key === "ArrowDown" ||
+                key === "s" ||
+                key === "S"
+            ) {
+
+                menuMove(1);
+
+            }
+
+            return;
+
+        }
+
+
+        if (
+            state === STATES.DIFFICULTY
+        ) {
+
+            if (
+                key === "ArrowUp" ||
+                key === "w" ||
+                key === "W"
+            ) {
+
+                difficultyMove(-1);
+
+            }
+
+
+            if (
+                key === "ArrowDown" ||
+                key === "s" ||
+                key === "S"
+            ) {
+
+                difficultyMove(1);
+
+            }
+
+            return;
+
+        }
+
+
+        if (
+            state === STATES.ROUND
+        ) {
+
+            if (
+                key === "ArrowUp" ||
+                key === "w" ||
+                key === "W"
+            ) {
+
+                roundMove(-1);
+
+            }
+
+
+            if (
+                key === "ArrowDown" ||
+                key === "s" ||
+                key === "S"
+            ) {
+
+                roundMove(1);
+
+            }
+
+            return;
+
+        }
+
+
+        if (
+            state === STATES.RESULT
+        ) {
+
+            if (
+                key === "ArrowUp" ||
+                key === "w" ||
+                key === "W"
+            ) {
+
+                resultMove(-1);
+
+            }
+
+
+            if (
+                key === "ArrowDown" ||
+                key === "s" ||
+                key === "S"
+            ) {
+
+                resultMove(1);
+
+            }
+
+            return;
+
+        }
+
+
+        if (
+            state === STATES.TOKENS
+        ) {
+
+            if (
+                key === "ArrowUp" ||
+                key === "w" ||
+                key === "W"
+            ) {
+
+                tokenMove(-1);
+
+            }
+
+
+            if (
+                key === "ArrowDown" ||
+                key === "s" ||
+                key === "S"
+            ) {
+
+                tokenMove(1);
+
+            }
+
+            return;
+
+        }
+
+
+        if (
+            state === STATES.REDEEM
+        ) {
+
+            if (
+                key === "F1"
+            ) {
+
+                requestNewCode();
+
+            }
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   COOLDOWN CLOCK
 ========================================================= */
 
 let previousTime =
     performance.now();
 
 
-function loop(currentTime) {
+/* =========================================================
+   MAIN LOOP
+========================================================= */
+
+function loop(now) {
 
     let dt =
         (
-            currentTime -
+            now -
             previousTime
         ) / 1000;
 
 
     previousTime =
-        currentTime;
+        now;
 
 
     if (
@@ -790,6 +2865,8 @@ function loop(currentTime) {
 
     update(dt);
 
+    updateCooldown(now);
+
     draw();
 
 
@@ -798,23 +2875,6 @@ function loop(currentTime) {
     );
 
 }
-
-
-window.addEventListener(
-    "keydown",
-    function(event) {
-
-        if (
-            event.key === "Enter" &&
-            !gameStarted
-        ) {
-
-            resetGame();
-
-        }
-
-    }
-);
 
 
 draw();
