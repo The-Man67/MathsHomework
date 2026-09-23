@@ -2,6267 +2,2775 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pong</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ping Pong</title>
 <style>
-html,
-body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    background: #101010;
-    color: #ffffff;
-    font-family: Arial, sans-serif;
-    overflow: hidden;
-    user-select: none;
-}
-
-body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-#gameWrap {
-    position: relative;
-    width: min(96vw, 1100px);
-    aspect-ratio: 16 / 10;
-}
-
-#game {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    box-sizing: border-box;
-    display: block;
-    background: #181818;
-    border: 2px solid #444444;
-    touch-action: none;
-}
-
-#tokenInput {
-    position: absolute;
-    left: 4.7%;
-    top: 46.7%;
-    width: 90.6%;
-    height: 12.5%;
-    box-sizing: border-box;
-    padding: 0 18px;
-    border: 2px solid #555555;
-    background: #181818;
-    color: #ffffff;
-    outline: none;
-    font-family: Consolas, "Courier New", monospace;
-    font-size: clamp(9px, 1.15vw, 14px);
-    user-select: text;
-    display: none;
-    z-index: 20;
-}
-
-#tokenInput:focus {
-    border-color: #999999;
-}
-
-#copyButton {
-    position: absolute;
-    left: 86.9%;
-    top: 25%;
-    width: 8.1%;
-    height: 12.5%;
-    box-sizing: border-box;
-    border: 2px solid #555555;
-    background: #181818;
-    color: #ffffff;
-    font-size: clamp(16px, 2vw, 25px);
-    padding: 0;
-    cursor: pointer;
-    display: none;
-    z-index: 20;
-}
-
-#copyButton:hover {
-    background: #252525;
-}
-
-#copyButton:active {
-    background: #333333;
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;background:#0b0d10;color:#fff;font-family:Arial,Helvetica,sans-serif}
+body{display:flex;align-items:center;justify-content:center;overflow:auto}
+#wrap{width:min(100vw,1000px);padding:18px;display:flex;flex-direction:column;gap:10px}
+#top{display:flex;justify-content:space-between;align-items:center;min-height:24px;font-size:14px;color:#b8bec8}
+#game{display:block;width:100%;height:auto;aspect-ratio:960/600;background:#11151a;border:1px solid #303640;touch-action:none}
+#under{display:flex;gap:8px;flex-wrap:wrap}
+button,input,textarea{font:inherit}
+button{background:#1a1f26;color:#fff;border:1px solid #3a424d;border-radius:6px;padding:9px 12px;cursor:pointer}
+button:hover{background:#232a33}
+button:disabled{opacity:.55;cursor:not-allowed}
+#codePanel{display:none;width:100%;padding:14px;background:#12161c;border:1px solid #303640;border-radius:6px}
+#codePanel.open{display:block}
+#codeTitle{font-size:16px;font-weight:700;line-height:1.2;margin-bottom:6px}
+#codeHint{font-size:12px;color:#89919d;line-height:1.45;margin-bottom:10px}
+.codeLabel{font-size:11px;font-weight:700;letter-spacing:.05em;color:#9fa7b2;margin:10px 0 5px}
+.codeRow{display:flex;align-items:stretch;gap:8px;min-width:0}
+#generatedCode{flex:1;min-width:0;min-height:72px;resize:vertical;padding:10px;background:#090b0e;color:#fff;border:1px solid #3a424d;border-radius:5px;font-family:Consolas,Monaco,monospace;font-size:12px;line-height:1.5;overflow:auto;word-break:break-all;white-space:pre-wrap;user-select:text}
+#copyGenerated{flex:0 0 44px;width:44px;padding:0;font-size:18px;line-height:1}
+#codeInput{display:block;width:100%;min-width:0;min-height:72px;resize:vertical;padding:10px;background:#090b0e;color:#fff;border:1px solid #3a424d;border-radius:5px;font-family:Consolas,Monaco,monospace;font-size:12px;line-height:1.5;overflow:auto;word-break:break-all;white-space:pre-wrap;user-select:text;text-transform:none;letter-spacing:normal}
+.codeActions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.codeActions button{flex:1 1 130px}
+#message{display:block;min-height:40px;margin-top:10px;padding:8px 10px;background:#0b0d10;border:1px solid #252b33;border-radius:5px;color:#b8bec8;font-size:13px;line-height:1.45;overflow-wrap:anywhere;word-break:break-word;white-space:normal}
+#message.ok{color:#fff}
+#message.error{color:#fff}
+@media(max-width:600px){
+  body{align-items:flex-start}
+  #wrap{padding:8px}
+  #top{font-size:12px}
+  button{padding:8px 10px}
+  #generatedCode,#codeInput{font-size:11px;min-height:84px}
+  #copyGenerated{flex-basis:40px;width:40px}
 }
 </style>
 </head>
-
 <body>
+<div id="wrap">
+  <div id="top"><span>PONG</span><span id="tokens">Tokens: 10</span></div>
+  <canvas id="game" width="960" height="600"></canvas>
+  <div id="under">
+    <button id="getTokensBtn" type="button">Get Tokens</button>
+  </div>
 
-<div id="gameWrap">
+  <section id="codePanel" aria-label="Token codes">
+    <div id="codeTitle">TOKEN CODE</div>
+    <div id="codeHint">The game is completely offline. It never connects to the internet. Redemption Codes are converted on the website; Token Codes are verified locally in this game.</div>
 
-    <canvas
-        id="game"
-        width="960"
-        height="600">
-    </canvas>
+    <div class="codeLabel">REDEMPTION CODE</div>
+    <div class="codeRow">
+      <textarea id="generatedCode" readonly spellcheck="false" wrap="soft" aria-label="Generated Redemption Code"></textarea>
+      <button id="copyGenerated" type="button" title="Copy Redemption Code" aria-label="Copy Redemption Code">📋</button>
+    </div>
 
-    <input
-        id="tokenInput"
-        type="text"
-        autocomplete="off"
-        autocorrect="off"
-        autocapitalize="off"
-        spellcheck="false"
-        placeholder="TYPE OR CTRL+V TOKEN CODE">
+    <div class="codeLabel">TOKEN CODE</div>
+    <textarea id="codeInput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Paste your B2 Token Code here" wrap="soft" aria-label="Token Code"></textarea>
 
-    <button
-        id="copyButton"
-        type="button"
-        title="Copy redemption code"
-        aria-label="Copy redemption code">
-        📋
-    </button>
-
+    <div class="codeActions">
+      <button id="submitCode" type="button">Verify Token Code</button>
+      <button id="copyToken" type="button">Copy Token Code</button>
+      <button id="closeCode" type="button">Close</button>
+    </div>
+    <div id="message" role="status" aria-live="polite"></div>
+  </section>
 </div>
 
 <script>
+(() => {
+  "use strict";
 
-"use strict";
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const tokensEl = document.getElementById("tokens");
+  const getTokensBtn = document.getElementById("getTokensBtn");
+  const codePanel = document.getElementById("codePanel");
+  const codeTitle = document.getElementById("codeTitle");
+  const generatedCode = document.getElementById("generatedCode");
+  const copyGenerated = document.getElementById("copyGenerated");
+  const codeInput = document.getElementById("codeInput");
+  const submitCode = document.getElementById("submitCode");
+  const copyToken = document.getElementById("copyToken");
+  const closeCode = document.getElementById("closeCode");
+  const message = document.getElementById("message");
 
+  const PUBLIC_KEY_B64 = "MCowBQYDK2VwAyEATJAcgkn3awdVvfnhaWPRgzdD2BDWreSkg0kstuun37I=";
+  const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const REWARD = 10;
+  const STARTING_TOKENS = 10;
+  const INSTALLATION_LENGTH = 48;
+  const REDEMPTION_ID_LENGTH = 32;
+  const DIFFICULTIES = ["Slow", "Normal", "Hard"];
+  const TARGETS = [5, 10, 15, 20, 25];
+  const BASE_COSTS = [1, 3, 7, 15, 31];
+  const DIFFICULTY_MULTIPLIER = [1, 2, 5];
 
-/* =========================================================
-   CANVAS
-========================================================= */
+  const PADDLE_W = 16;
+  const PADDLE_H = 100;
+  const BALL_SIZE = 16;
+  const PLAYER_X = 36;
+  const AI_X = 908;
 
-const canvas =
-    document.getElementById("game");
+  let storageAvailable = true;
+  const memoryStore = Object.create(null);
 
-const ctx =
-    canvas.getContext("2d");
-
-const tokenInput =
-    document.getElementById("tokenInput");
-
-const copyButton =
-    document.getElementById("copyButton");
-
-const WIDTH =
-    960;
-
-const HEIGHT =
-    600;
-
-
-/* =========================================================
-   SAVE
-========================================================= */
-
-const SAVE_KEY =
-    "pong_local_save_v4";
-
-const INSTALLATION_KEY =
-    "pong_installation_id_v2";
-
-
-function defaultSave() {
-
-    return {
-        tokens: 10,
-        difficulty: 0,
-        unlockedDifficulty: 0,
-        currentRound: 1,
-        redeemedCodes: []
-    };
-
-}
-
-
-let save;
-
-
-function saveGame() {
+  function storageGet(key) {
+    if (!storageAvailable) {
+      return Object.prototype.hasOwnProperty.call(memoryStore, key)
+        ? memoryStore[key]
+        : null;
+    }
 
     try {
-
-        localStorage.setItem(
-            SAVE_KEY,
-            JSON.stringify(save)
-        );
-
-    } catch (error) {
-
+      return window.localStorage.getItem(key);
+    } catch (_) {
+      storageAvailable = false;
+      return Object.prototype.hasOwnProperty.call(memoryStore, key)
+        ? memoryStore[key]
+        : null;
     }
+  }
 
-}
+  function storageSet(key, value) {
+    const stringValue = String(value);
+    memoryStore[key] = stringValue;
 
-
-function loadSave() {
+    if (!storageAvailable) return;
 
     try {
-
-        const raw =
-            localStorage.getItem(
-                SAVE_KEY
-            );
-
-
-        if (!raw) {
-
-            save =
-                defaultSave();
-
-            saveGame();
-
-            return;
-
-        }
-
-
-        const parsed =
-            JSON.parse(raw);
-
-
-        save =
-            defaultSave();
-
-
-        if (
-            Number.isFinite(
-                parsed.tokens
-            )
-        ) {
-
-            save.tokens =
-                Math.max(
-                    0,
-                    Math.floor(
-                        parsed.tokens
-                    )
-                );
-
-        }
-
-
-        if (
-            Number.isFinite(
-                parsed.difficulty
-            )
-        ) {
-
-            save.difficulty =
-                Math.max(
-                    0,
-                    Math.min(
-                        2,
-                        Math.floor(
-                            parsed.difficulty
-                        )
-                    )
-                );
-
-        }
-
-
-        if (
-            Number.isFinite(
-                parsed.unlockedDifficulty
-            )
-        ) {
-
-            save.unlockedDifficulty =
-                Math.max(
-                    0,
-                    Math.min(
-                        2,
-                        Math.floor(
-                            parsed.unlockedDifficulty
-                        )
-                    )
-                );
-
-        }
-
-
-        if (
-            Number.isFinite(
-                parsed.currentRound
-            )
-        ) {
-
-            save.currentRound =
-                Math.max(
-                    1,
-                    Math.min(
-                        5,
-                        Math.floor(
-                            parsed.currentRound
-                        )
-                    )
-                );
-
-        }
-
-
-        if (
-            Array.isArray(
-                parsed.redeemedCodes
-            )
-        ) {
-
-            save.redeemedCodes =
-                parsed.redeemedCodes
-                    .filter(
-                        code =>
-                            typeof code ===
-                            "string"
-                    )
-                    .slice(
-                        -100
-                    );
-
-        }
-
-
-        if (
-            save.difficulty >
-            save.unlockedDifficulty
-        ) {
-
-            save.difficulty =
-                save.unlockedDifficulty;
-
-        }
-
-    } catch (error) {
-
-        save =
-            defaultSave();
-
+      window.localStorage.setItem(key, stringValue);
+    } catch (_) {
+      storageAvailable = false;
     }
+  }
 
-}
-
-
-loadSave();
-
-
-/* =========================================================
-   DIFFICULTIES
-========================================================= */
-
-const difficulties = [
-
-    {
-        name: "SLOW",
-
-        ballStartSpeed: 350,
-        ballMaxSpeed: 650,
-        aiSpeed: 300,
-
-        background: "#181818",
-        primary: "#ffffff",
-        secondary: "#444444",
-        panel: "#222222",
-        border: "#555555",
-        muted: "#888888"
-    },
-
-    {
-        name: "NORMAL",
-
-        ballStartSpeed: 410,
-        ballMaxSpeed: 760,
-        aiSpeed: 390,
-
-        background: "#0b2516",
-        primary: "#39ff88",
-        secondary: "#174b2c",
-        panel: "#10331f",
-        border: "#27834d",
-        muted: "#6fc894"
-    },
-
-    {
-        name: "HARD",
-
-        ballStartSpeed: 470,
-        ballMaxSpeed: 900,
-        aiSpeed: 475,
-
-        background: "#2a0b0b",
-        primary: "#ff4d4d",
-        secondary: "#581919",
-        panel: "#3a1111",
-        border: "#9c2c2c",
-        muted: "#d87878"
+  function safeJsonParse(value, fallback) {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed == null ? fallback : parsed;
+    } catch (_) {
+      return fallback;
     }
+  }
 
-];
-
-
-/* =========================================================
-   ROUND SETTINGS
-========================================================= */
-
-const roundTargets = [
-    5,
-    10,
-    15,
-    20,
-    25
-];
-
-
-const slowRoundCosts = [
-    1,
-    3,
-    7,
-    15,
-    31
-];
-
-
-/* =========================================================
-   CODE SETTINGS
-========================================================= */
-
-const CODE_ALPHABET =
-    "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-
-const INSTALLATION_ID_LENGTH =
-    48;
-
-const REDEMPTION_ID_LENGTH =
-    32;
-
-const CODE_A_PREFIX =
-    "A1";
-
-const REWARD_AMOUNT =
-    100;
-
-const TOKEN_CODE_PREFIX =
-    "B2";
-
-const TOKEN_LIFETIME =
-    5 * 60 * 1000;
-
-
-/*
-    Public Ed25519 key matching the Worker private key.
-*/
-
-const PUBLIC_KEY_BASE64 =
-    "MCowBQYDK2VwAyEATJAcgkn3awdVvfnhaWPRgzdD2BDWreSkg0kstuun37I=";
-
-
-/* =========================================================
-   GAME STATES
-========================================================= */
-
-const STATES = {
-
-    MENU: "menu",
-
-    DIFFICULTY: "difficulty",
-
-    ROUND: "round",
-
-    PLAYING: "playing",
-
-    PAUSED: "paused",
-
-    RESULT: "result",
-
-    TOKENS: "tokens",
-
-    REDEEM: "redeem",
-
-    COOLDOWN: "cooldown"
-
-};
-
-
-let state =
-    STATES.MENU;
-
-
-/* =========================================================
-   MENU SELECTIONS
-========================================================= */
-
-let menuSelection =
-    0;
-
-let difficultySelection =
-    save.difficulty;
-
-let roundSelection =
-    save.currentRound - 1;
-
-let resultSelection =
-    0;
-
-let tokenSelection =
-    0;
-
-let redeemSelection =
-    0;
-
-
-/* =========================================================
-   REDEMPTION STATE
-========================================================= */
-
-let currentCodeA =
-    "";
-
-let currentRedemptionId =
-    "";
-
-let codeAGenerating =
-    false;
-
-let redemptionMessage =
-    "";
-
-let redemptionMessageType =
-    "normal";
-
-let retryCount =
-    0;
-
-const MAX_RETRIES =
-    3;
-
-let cooldownActive =
-    false;
-
-let cooldownRemaining =
-    0;
-
-let cooldownLastUpdate =
-    0;
-
-
-/* =========================================================
-   INSTALLATION ID
-========================================================= */
-
-function isValidCodeString(
-    value,
-    length
-) {
-
-    if (
-        typeof value !==
-        "string"
-    ) {
-
-        return false;
-
-    }
-
-
-    if (
-        value.length !==
-        length
-    ) {
-
-        return false;
-
-    }
-
-
-    for (
-        const character of
-        value
-    ) {
-
-        if (
-            !CODE_ALPHABET.includes(
-                character
-            )
-        ) {
-
-            return false;
-
-        }
-
-    }
-
-
-    return true;
-
-}
-
-
-function randomCodeString(
-    length
-) {
-
-    let result =
-        "";
-
+  function randomString(length) {
+    let out = "";
 
     try {
-
-        if (
-            window.crypto &&
-            window.crypto.getRandomValues
-        ) {
-
-            const values =
-                new Uint32Array(
-                    length
-                );
-
-
-            window.crypto.getRandomValues(
-                values
-            );
-
-
-            for (
-                let i = 0;
-                i < length;
-                i++
-            ) {
-
-                result +=
-                    CODE_ALPHABET[
-                        values[i] %
-                        CODE_ALPHABET.length
-                    ];
-
-            }
-
-
-            return result;
-
-        }
-
-    } catch (error) {
-
-    }
-
-
-    for (
-        let i = 0;
-        i < length;
-        i++
-    ) {
-
-        result +=
-            CODE_ALPHABET[
-                Math.floor(
-                    Math.random() *
-                    CODE_ALPHABET.length
-                )
-            ];
-
-    }
-
-
-    return result;
-
-}
-
-
-function getInstallationId() {
-
-    try {
-
-        const existing =
-            localStorage.getItem(
-                INSTALLATION_KEY
-            );
-
-
-        if (
-            isValidCodeString(
-                existing,
-                INSTALLATION_ID_LENGTH
-            )
-        ) {
-
-            return existing;
-
-        }
-
-
-        const created =
-            randomCodeString(
-                INSTALLATION_ID_LENGTH
-            );
-
-
-        localStorage.setItem(
-            INSTALLATION_KEY,
-            created
-        );
-
-
-        return created;
-
-    } catch (error) {
-
-        return randomCodeString(
-            INSTALLATION_ID_LENGTH
-        );
-
-    }
-
-}
-
-
-const installationId =
-    getInstallationId();
-
-
-/* =========================================================
-   SHA-256
-========================================================= */
-
-const SHA256_K = [
-
-    0x428a2f98,
-    0x71374491,
-    0xb5c0fbcf,
-    0xe9b5dba5,
-    0x3956c25b,
-    0x59f111f1,
-    0x923f82a4,
-    0xab1c5ed5,
-    0xd807aa98,
-    0x12835b01,
-    0x243185be,
-    0x550c7dc3,
-    0x72be5d74,
-    0x80deb1fe,
-    0x9bdc06a7,
-    0xc19bf174,
-    0xe49b69c1,
-    0xefbe4786,
-    0x0fc19dc6,
-    0x240ca1cc,
-    0x2de92c6f,
-    0x4d2c6dfc,
-    0x53380d13,
-    0x650a7354,
-    0x766a0abb,
-    0x81c2c92e,
-    0x92722c85,
-    0xa2bfe8a1,
-    0xa81a664b,
-    0xc24b8b70,
-    0xc76c51a3,
-    0xd192e819,
-    0xd6990624,
-    0xf40e3585,
-    0x106aa070,
-    0x19a4c116,
-    0x1e376c08,
-    0x2748774c,
-    0x34b0bcb5,
-    0x391c0cb3,
-    0x4ed8aa4a,
-    0x5b9cca4f,
-    0x682e6ff3,
-    0x748f82ee,
-    0x78a5636f,
-    0x84c87814,
-    0x8cc70208,
-    0x90befffa,
-    0xa4506ceb,
-    0xbef9a3f7,
-    0xc67178f2
-
-];
-
-
-function rightRotate(
-    value,
-    amount
-) {
-
-    return (
-        value >>> amount
-    ) |
-    (
-        value <<
-        (
-            32 -
-            amount
-        )
-    );
-
-}
-
-
-function sha256Fallback(
-    bytes
-) {
-
-    const bitLength =
-        bytes.length * 8;
-
-
-    const paddedLength =
-        Math.ceil(
-            (
-                bytes.length +
-                9
-            ) / 64
-        ) *
-        64;
-
-
-    const message =
-        new Uint8Array(
-            paddedLength
-        );
-
-
-    message.set(
-        bytes
-    );
-
-
-    message[
-        bytes.length
-    ] =
-        0x80;
-
-
-    const high =
-        Math.floor(
-            bitLength /
-            0x100000000
-        );
-
-
-    const low =
-        bitLength >>> 0;
-
-
-    message[
-        paddedLength - 8
-    ] =
-        (
-            high >>> 24
-        ) &
-        0xff;
-
-
-    message[
-        paddedLength - 7
-    ] =
-        (
-            high >>> 16
-        ) &
-        0xff;
-
-
-    message[
-        paddedLength - 6
-    ] =
-        (
-            high >>> 8
-        ) &
-        0xff;
-
-
-    message[
-        paddedLength - 5
-    ] =
-        high &
-        0xff;
-
-
-    message[
-        paddedLength - 4
-    ] =
-        (
-            low >>> 24
-        ) &
-        0xff;
-
-
-    message[
-        paddedLength - 3
-    ] =
-        (
-            low >>> 16
-        ) &
-        0xff;
-
-
-    message[
-        paddedLength - 2
-    ] =
-        (
-            low >>> 8
-        ) &
-        0xff;
-
-
-    message[
-        paddedLength - 1
-    ] =
-        low &
-        0xff;
-
-
-    let h0 =
-        0x6a09e667;
-
-    let h1 =
-        0xbb67ae85;
-
-    let h2 =
-        0x3c6ef372;
-
-    let h3 =
-        0xa54ff53a;
-
-    let h4 =
-        0x510e527f;
-
-    let h5 =
-        0x9b05688c;
-
-    let h6 =
-        0x1f83d9ab;
-
-    let h7 =
-        0x5be0cd19;
-
-
-    const w =
-        new Uint32Array(
-            64
-        );
-
-
-    for (
-        let offset = 0;
-        offset < paddedLength;
-        offset += 64
-    ) {
-
-        for (
-            let i = 0;
-            i < 16;
-            i++
-        ) {
-
-            const p =
-                offset +
-                i * 4;
-
-
-            w[i] =
-                (
-                    message[p] << 24
-                ) |
-                (
-                    message[p + 1] << 16
-                ) |
-                (
-                    message[p + 2] << 8
-                ) |
-                message[p + 3];
-
-        }
-
-
-        for (
-            let i = 16;
-            i < 64;
-            i++
-        ) {
-
-            const s0 =
-                rightRotate(
-                    w[i - 15],
-                    7
-                ) ^
-                rightRotate(
-                    w[i - 15],
-                    18
-                ) ^
-                (
-                    w[i - 15] >>> 3
-                );
-
-
-            const s1 =
-                rightRotate(
-                    w[i - 2],
-                    17
-                ) ^
-                rightRotate(
-                    w[i - 2],
-                    19
-                ) ^
-                (
-                    w[i - 2] >>> 10
-                );
-
-
-            w[i] =
-                (
-                    w[i - 16] +
-                    s0 +
-                    w[i - 7] +
-                    s1
-                ) >>> 0;
-
-        }
-
-
-        let a =
-            h0;
-
-        let b =
-            h1;
-
-        let c =
-            h2;
-
-        let d =
-            h3;
-
-        let e =
-            h4;
-
-        let f =
-            h5;
-
-        let g =
-            h6;
-
-        let h =
-            h7;
-
-
-        for (
-            let i = 0;
-            i < 64;
-            i++
-        ) {
-
-            const S1 =
-                rightRotate(
-                    e,
-                    6
-                ) ^
-                rightRotate(
-                    e,
-                    11
-                ) ^
-                rightRotate(
-                    e,
-                    25
-                );
-
-
-            const ch =
-                (
-                    e &
-                    f
-                ) ^
-                (
-                    (~e) &
-                    g
-                );
-
-
-            const temp1 =
-                (
-                    h +
-                    S1 +
-                    ch +
-                    SHA256_K[i] +
-                    w[i]
-                ) >>> 0;
-
-
-            const S0 =
-                rightRotate(
-                    a,
-                    2
-                ) ^
-                rightRotate(
-                    a,
-                    13
-                ) ^
-                rightRotate(
-                    a,
-                    22
-                );
-
-
-            const maj =
-                (
-                    a &
-                    b
-                ) ^
-                (
-                    a &
-                    c
-                ) ^
-                (
-                    b &
-                    c
-                );
-
-
-            const temp2 =
-                (
-                    S0 +
-                    maj
-                ) >>> 0;
-
-
-            h =
-                g;
-
-            g =
-                f;
-
-            f =
-                e;
-
-            e =
-                (
-                    d +
-                    temp1
-                ) >>> 0;
-
-            d =
-                c;
-
-            c =
-                b;
-
-            b =
-                a;
-
-            a =
-                (
-                    temp1 +
-                    temp2
-                ) >>> 0;
-
-        }
-
-
-        h0 =
-            (
-                h0 +
-                a
-            ) >>> 0;
-
-        h1 =
-            (
-                h1 +
-                b
-            ) >>> 0;
-
-        h2 =
-            (
-                h2 +
-                c
-            ) >>> 0;
-
-        h3 =
-            (
-                h3 +
-                d
-            ) >>> 0;
-
-        h4 =
-            (
-                h4 +
-                e
-            ) >>> 0;
-
-        h5 =
-            (
-                h5 +
-                f
-            ) >>> 0;
-
-        h6 =
-            (
-                h6 +
-                g
-            ) >>> 0;
-
-        h7 =
-            (
-                h7 +
-                h
-            ) >>> 0;
-
-    }
-
-
-    return [
-
-        h0,
-        h1,
-        h2,
-        h3,
-        h4,
-        h5,
-        h6,
-        h7
-
-    ]
-        .map(
-            value =>
-                value
-                    .toString(16)
-                    .padStart(
-                        8,
-                        "0"
-                    )
-        )
-        .join("");
-
-}
-
-
-async function sha256(
-    textValue
-) {
-
-    const bytes =
-        new TextEncoder().encode(
-            textValue
-        );
-
-
-    if (
+      if (
         window.crypto &&
-        window.crypto.subtle
-    ) {
+        typeof window.crypto.getRandomValues === "function"
+      ) {
+        const values = new Uint32Array(length);
+        window.crypto.getRandomValues(values);
 
-        try {
-
-            const hash =
-                await window.crypto.subtle.digest(
-                    "SHA-256",
-                    bytes
-                );
-
-
-            return Array
-                .from(
-                    new Uint8Array(
-                        hash
-                    )
-                )
-                .map(
-                    byte =>
-                        byte
-                            .toString(16)
-                            .padStart(
-                                2,
-                                "0"
-                            )
-                )
-                .join("");
-
-        } catch (error) {
-
+        for (let i = 0; i < length; i++) {
+          out += ALPHABET[values[i] % ALPHABET.length];
         }
 
+        return out;
+      }
+    } catch (_) {}
+
+    for (let i = 0; i < length; i++) {
+      out += ALPHABET[
+        Math.floor(Math.random() * ALPHABET.length)
+      ];
     }
 
+    return out;
+  }
 
-    return sha256Fallback(
-        bytes
+  let installationId = storageGet("pong_installation_id");
+
+  if (!/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{48}$/.test(installationId || "")) {
+    installationId = randomString(INSTALLATION_LENGTH);
+    storageSet("pong_installation_id", installationId);
+  }
+
+  let tokens = Number(storageGet("pong_tokens"));
+
+  if (!Number.isFinite(tokens) || tokens < 0) {
+    tokens = STARTING_TOKENS;
+  }
+
+  let usedCodes = safeJsonParse(
+    storageGet("pong_used_codes") || "[]",
+    []
+  );
+
+  if (!Array.isArray(usedCodes)) {
+    usedCodes = [];
+  }
+
+  function saveTokens() {
+    tokens = Math.max(
+      0,
+      Math.floor(tokens)
     );
 
-}
+    storageSet(
+      "pong_tokens",
+      tokens
+    );
 
+    tokensEl.textContent =
+      "Tokens: " + tokens;
 
-/* =========================================================
-   CODE EQUATION
-========================================================= */
+    getTokensBtn.disabled =
+      tokens >= 10;
 
-function characterValue(
-    character
-) {
+    getTokensBtn.title =
+      tokens >= 10
+        ? "Spend tokens before requesting more."
+        : "Get 10 more tokens.";
 
+    getTokensBtn.setAttribute(
+      "aria-label",
+      getTokensBtn.title
+    );
+  }
+
+  saveTokens();
+
+  let screen = "menu";
+  let menuIndex = 0;
+  let difficulty = 0;
+  let round = 1;
+  let playerScore = 0;
+  let aiScore = 0;
+  let paused = false;
+  let lastTime = performance.now();
+  let winner = "";
+  let ball = {
+    x: 480,
+    y: 300,
+    vx: 0,
+    vy: 0
+  };
+
+  let playerY = 250;
+  let aiY = 250;
+  let keys = Object.create(null);
+  let touchDirection = 0;
+  let currentRedemptionCode = "";
+
+  function characterValue(character) {
     const index =
-        CODE_ALPHABET.indexOf(
-            character
-        );
+      ALPHABET.indexOf(character);
 
+    return index < 0
+      ? -1
+      : index + 11;
+  }
 
-    if (
-        index < 0
-    ) {
-
-        return -1;
-
-    }
-
-
-    return index + 11;
-
-}
-
-
-function calculateEquation(
-    value
-) {
-
+  function calculateEquation(text) {
     const values = [];
 
+    for (const character of text) {
+      const value =
+        characterValue(character);
 
-    for (
-        const character of
-        value
-    ) {
-
-        const number =
-            characterValue(
-                character
-            );
-
-
-        if (
-            number < 0
-        ) {
-
-            return null;
-
-        }
-
-
-        values.push(
-            number
-        );
-
-    }
-
-
-    if (
-        values.length < 16
-    ) {
-
+      if (value < 0) {
         return null;
+      }
 
+      values.push(value);
     }
 
+    if (values.length < 16) {
+      return null;
+    }
 
-    let a =
-        values[0] *
-        values[2];
-
-
-    let b =
-        values[1] +
-        values[3];
-
-
-    let c =
-        values[4] *
-        7;
-
-
-    let d =
-        values[5] +
-        values[6];
-
-
-    let e =
-        (
-            a +
-            b
-        ) *
-        c;
-
-
-    let f =
-        e +
-        d;
-
-
-    let g =
-        f *
-        values[7];
-
-
-    let h =
-        g +
-        values[8];
-
-
-    let i =
-        h *
-        values[9];
-
-
-    let j =
-        i +
-        values[10];
-
+    let a = values[0] * values[2];
+    let b = values[1] + values[3];
+    let c = values[4] * 7;
+    let d = values[5] + values[6];
+    let e = (a + b) * c;
+    let f = e + d;
+    let g = f * values[7];
+    let h = g + values[8];
+    let i = h * values[9];
+    let j = i + values[10];
 
     let k =
-        (
-            j *
-            values[11]
-        ) +
-        (
-            j ^
-            values[11]
-        );
-
+      (j * values[11]) +
+      (j ^ values[11]);
 
     k =
-        Math.abs(
-            k %
-            1000000007
-        );
+      Math.abs(
+        k % 1000000007
+      );
 
-
-    let l =
-        k +
-        values[12];
-
-
-    let m =
-        l *
-        values[13];
-
-
-    let n =
-        m +
-        values[14];
-
+    let l = k + values[12];
+    let m = l * values[13];
+    let n = m + values[14];
 
     let result =
-        n *
-        values[15];
-
+      n * values[15];
 
     result =
-        Math.abs(
-            result %
-            1000000007
-        );
-
+      Math.abs(
+        result % 1000000007
+      );
 
     return result;
+  }
 
-}
-
-
-/* =========================================================
-   CODE A
-========================================================= */
-
-async function createCodeA() {
-
+  function isCodeStringValid(
+    value,
+    expectedLength
+  ) {
     if (
-        codeAGenerating
+      typeof value !== "string" ||
+      value.length !== expectedLength
     ) {
-
-        return;
-
+      return false;
     }
 
-
-    codeAGenerating =
-        true;
-
-
-    currentCodeA =
-        "";
-
-    currentRedemptionId =
-        "";
-
-
-    try {
-
-        const redemptionId =
-            randomCodeString(
-                REDEMPTION_ID_LENGTH
-            );
-
-
-        const equation =
-            calculateEquation(
-                installationId +
-                redemptionId
-            );
-
-
-        if (
-            equation === null
-        ) {
-
-            throw new Error(
-                "Equation error"
-            );
-
-        }
-
-
-        const checksum =
-            (
-                await sha256(
-                    installationId +
-                    "|" +
-                    redemptionId +
-                    "|" +
-                    equation
-                )
-            )
-                .slice(
-                    0,
-                    16
-                )
-                .toUpperCase();
-
-
-        currentRedemptionId =
-            redemptionId;
-
-
-        currentCodeA =
-            CODE_A_PREFIX +
-            "-" +
-            installationId +
-            "-" +
-            redemptionId +
-            "-" +
-            checksum;
-
-
-    } catch (error) {
-
-        setMessage(
-            "Could not create redemption code.",
-            "error"
-        );
-
+    for (const character of value) {
+      if (!ALPHABET.includes(character)) {
+        return false;
+      }
     }
 
+    return true;
+  }
 
-    codeAGenerating =
-        false;
+  const SHA256_K = [
+    0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,
+    0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,
+    0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,
+    0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,
+    0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,
+    0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,
+    0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,
+    0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,
+    0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+  ];
 
-}
+  function rotr(x, n) {
+    return (
+      (x >>> n) |
+      (x << (32 - n))
+    );
+  }
 
-
-function parseCodeA(
-    code
-) {
-
-    if (
-        typeof code !== "string"
-    ) {
-
-        return null;
-
-    }
-
-
-    const cleaned =
-        code
-            .trim()
-            .toUpperCase();
-
-
-    const parts =
-        cleaned.split("-");
-
-
-    if (
-        parts.length !== 4
-    ) {
-
-        return null;
-
-    }
-
-
-    if (
-        parts[0] !== CODE_A_PREFIX
-    ) {
-
-        return null;
-
-    }
-
-
-    if (
-        !isValidCodeString(
-            parts[1],
-            INSTALLATION_ID_LENGTH
-        )
-    ) {
-
-        return null;
-
-    }
-
-
-    if (
-        !isValidCodeString(
-            parts[2],
-            REDEMPTION_ID_LENGTH
-        )
-    ) {
-
-        return null;
-
-    }
-
-
-    if (
-        !/^[A-F0-9]{16}$/.test(
-            parts[3]
-        )
-    ) {
-
-        return null;
-
-    }
-
-
-    return {
-
-        installationId:
-            parts[1],
-
-        redemptionId:
-            parts[2],
-
-        checksum:
-            parts[3]
-
-    };
-
-}
-
-
-/* =========================================================
-   BASE64URL
-========================================================= */
-
-function base64UrlToBytes(
-    value
-) {
-
-    let base64 =
-        value
-            .replace(
-                /-/g,
-                "+"
-            )
-            .replace(
-                /_/g,
-                "/"
-            );
-
-
-    while (
-        base64.length % 4 !== 0
-    ) {
-
-        base64 += "=";
-
-    }
-
-
-    const binary =
-        atob(
-            base64
-        );
-
-
+  function sha256(text) {
     const bytes =
-        new Uint8Array(
-            binary.length
-        );
+      new TextEncoder().encode(text);
 
+    const bitLength =
+      bytes.length * 8;
+
+    const paddedLength =
+      Math.ceil(
+        (bytes.length + 9) / 64
+      ) * 64;
+
+    const data =
+      new Uint8Array(paddedLength);
+
+    data.set(bytes);
+
+    data[bytes.length] =
+      0x80;
+
+    const high =
+      Math.floor(
+        bitLength / 0x100000000
+      );
+
+    const low =
+      bitLength >>> 0;
+
+    data[paddedLength - 8] =
+      (high >>> 24) & 255;
+
+    data[paddedLength - 7] =
+      (high >>> 16) & 255;
+
+    data[paddedLength - 6] =
+      (high >>> 8) & 255;
+
+    data[paddedLength - 5] =
+      high & 255;
+
+    data[paddedLength - 4] =
+      (low >>> 24) & 255;
+
+    data[paddedLength - 3] =
+      (low >>> 16) & 255;
+
+    data[paddedLength - 2] =
+      (low >>> 8) & 255;
+
+    data[paddedLength - 1] =
+      low & 255;
+
+    let h0 = 0x6a09e667;
+    let h1 = 0xbb67ae85;
+    let h2 = 0x3c6ef372;
+    let h3 = 0xa54ff53a;
+    let h4 = 0x510e527f;
+    let h5 = 0x9b05688c;
+    let h6 = 0x1f83d9ab;
+    let h7 = 0x5be0cd19;
+
+    const w =
+      new Uint32Array(64);
 
     for (
+      let offset = 0;
+      offset < data.length;
+      offset += 64
+    ) {
+      for (
         let i = 0;
-        i < binary.length;
+        i < 16;
         i++
-    ) {
+      ) {
+        const p =
+          offset + i * 4;
 
-        bytes[i] =
-            binary.charCodeAt(
-                i
-            );
+        w[i] =
+          (
+            (data[p] << 24) |
+            (data[p + 1] << 16) |
+            (data[p + 2] << 8) |
+            data[p + 3]
+          ) >>> 0;
+      }
 
-    }
+      for (
+        let i = 16;
+        i < 64;
+        i++
+      ) {
+        const s0 =
+          rotr(
+            w[i - 15],
+            7
+          ) ^
+          rotr(
+            w[i - 15],
+            18
+          ) ^
+          (w[i - 15] >>> 3);
 
+        const s1 =
+          rotr(
+            w[i - 2],
+            17
+          ) ^
+          rotr(
+            w[i - 2],
+            19
+          ) ^
+          (w[i - 2] >>> 10);
 
-    return bytes;
+        w[i] =
+          (
+            w[i - 16] +
+            s0 +
+            w[i - 7] +
+            s1
+          ) >>> 0;
+      }
 
-}
+      let a = h0;
+      let b = h1;
+      let c = h2;
+      let d = h3;
+      let e = h4;
+      let f = h5;
+      let g = h6;
+      let h = h7;
 
-
-/* =========================================================
-   HEX
-========================================================= */
-
-function hexToBytes(
-    value
-) {
-
-    if (
-        typeof value !==
-        "string"
-    ) {
-
-        return null;
-
-    }
-
-
-    if (
-        value.length !== 128
-    ) {
-
-        return null;
-
-    }
-
-
-    if (
-        !/^[0-9a-fA-F]+$/.test(
-            value
-        )
-    ) {
-
-        return null;
-
-    }
-
-
-    const bytes =
-        new Uint8Array(
-            64
-        );
-
-
-    for (
+      for (
         let i = 0;
         i < 64;
         i++
-    ) {
+      ) {
+        const S1 =
+          rotr(e, 6) ^
+          rotr(e, 11) ^
+          rotr(e, 25);
 
-        bytes[i] =
-            parseInt(
-                value.slice(
-                    i * 2,
-                    i * 2 + 2
-                ),
-                16
-            );
+        const ch =
+          (e & f) ^
+          (~e & g);
 
+        const temp1 =
+          (
+            h +
+            S1 +
+            ch +
+            SHA256_K[i] +
+            w[i]
+          ) >>> 0;
+
+        const S0 =
+          rotr(a, 2) ^
+          rotr(a, 13) ^
+          rotr(a, 22);
+
+        const maj =
+          (a & b) ^
+          (a & c) ^
+          (b & c);
+
+        const temp2 =
+          (S0 + maj) >>> 0;
+
+        h = g;
+        g = f;
+        f = e;
+        e =
+          (d + temp1) >>> 0;
+        d = c;
+        c = b;
+        b = a;
+        a =
+          (temp1 + temp2) >>> 0;
+      }
+
+      h0 =
+        (h0 + a) >>> 0;
+
+      h1 =
+        (h1 + b) >>> 0;
+
+      h2 =
+        (h2 + c) >>> 0;
+
+      h3 =
+        (h3 + d) >>> 0;
+
+      h4 =
+        (h4 + e) >>> 0;
+
+      h5 =
+        (h5 + f) >>> 0;
+
+      h6 =
+        (h6 + g) >>> 0;
+
+      h7 =
+        (h7 + h) >>> 0;
     }
 
+    return [
+      h0,
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6,
+      h7
+    ]
+      .map(
+        value =>
+          value
+            .toString(16)
+            .padStart(8, "0")
+      )
+      .join("");
+  }
+
+  function createRequestChecksum(
+    installId,
+    redemptionId
+  ) {
+    const equation =
+      calculateEquation(
+        installId +
+        redemptionId
+      );
+
+    if (equation === null) {
+      return null;
+    }
+
+    return sha256(
+      installId +
+      "|" +
+      redemptionId +
+      "|" +
+      equation
+    )
+      .slice(0, 16)
+      .toUpperCase();
+  }
+
+  function createCodeA() {
+    const redemptionId =
+      randomString(
+        REDEMPTION_ID_LENGTH
+      );
+
+    const checksum =
+      createRequestChecksum(
+        installationId,
+        redemptionId
+      );
+
+    if (!checksum) {
+      throw new Error(
+        "Could not create code checksum."
+      );
+    }
+
+    return (
+      "A1-" +
+      installationId +
+      "-" +
+      redemptionId +
+      "-" +
+      checksum
+    );
+  }
+
+  function base64ToBytes(base64) {
+    const binary =
+      atob(base64);
+
+    const bytes =
+      new Uint8Array(
+        binary.length
+      );
+
+    for (
+      let i = 0;
+      i < binary.length;
+      i++
+    ) {
+      bytes[i] =
+        binary.charCodeAt(i);
+    }
 
     return bytes;
+  }
 
-}
+  function hexToBytes(hex) {
+    const out =
+      new Uint8Array(
+        hex.length / 2
+      );
 
-
-/* =========================================================
-   PUBLIC KEY
-========================================================= */
-
-let publicKey =
-    null;
-
-let publicKeyPromise =
-    null;
-
-
-async function getPublicKey() {
-
-    if (
-        publicKey
+    for (
+      let i = 0;
+      i < out.length;
+      i++
     ) {
-
-        return publicKey;
-
+      out[i] =
+        parseInt(
+          hex.slice(
+            i * 2,
+            i * 2 + 2
+          ),
+          16
+        );
     }
 
+    return out;
+  }
 
-    if (
-        publicKeyPromise
-    ) {
-
-        return publicKeyPromise;
-
-    }
-
-
-    publicKeyPromise =
-        (
-            async function() {
-
-                if (
-                    !window.crypto ||
-                    !window.crypto.subtle
-                ) {
-
-                    throw new Error(
-                        "Web Crypto unavailable"
-                    );
-
-                }
-
-
-                const keyBytes =
-                    base64UrlToBytes(
-                        PUBLIC_KEY_BASE64
-                    );
-
-
-                publicKey =
-                    await window.crypto.subtle.importKey(
-                        "spki",
-                        keyBytes,
-                        {
-                            name:
-                                "Ed25519"
-                        },
-                        false,
-                        [
-                            "verify"
-                        ]
-                    );
-
-
-                return publicKey;
-
-            }
-        )();
-
-
-    return publicKeyPromise;
-
-}
-
-
-/* =========================================================
-   TOKEN CODE VERIFICATION
-========================================================= */
-
-async function verifyTokenCode(
-    input
-) {
-
-    let cleaned =
-        input
-            .trim()
-            .replace(
-                /\s+/g,
-                ""
-            );
-
-
-    if (
-        !cleaned.startsWith(
-            TOKEN_CODE_PREFIX +
-            "-"
+  function cleanTokenCode(value) {
+    let text =
+      String(value || "")
+        .replace(
+          /[\u00A0\r\n\t ]+/g,
+          ""
         )
-    ) {
-
-        return {
-
-            ok:
-                false,
-
-            message:
-                "Invalid token code format."
-
-        };
-
-    }
-
-
-    const encoded =
-        cleaned
-            .slice(3)
-            .replace(
-                /-/g,
-                ""
-            );
-
-
-    let decodedBytes;
-
+        .replace(
+          /[–—−]/g,
+          "-"
+        )
+        .trim();
 
     try {
+      const parsed =
+        JSON.parse(text);
 
-        decodedBytes =
-            base64UrlToBytes(
-                encoded
-            );
+      if (
+        parsed &&
+        typeof parsed.outputCode ===
+          "string"
+      ) {
+        text =
+          parsed.outputCode.trim();
+      }
+    } catch (_) {}
 
-    } catch (error) {
+    const codeStart =
+      text.search(/B2-/i);
 
-        return {
-
-            ok:
-                false,
-
-            message:
-                "Token code is corrupted."
-
-        };
-
+    if (codeStart > 0) {
+      text =
+        text.slice(codeStart);
     }
 
+    if (
+      text.startsWith('"') &&
+      text.endsWith('"')
+    ) {
+      text =
+        text.slice(
+          1,
+          -1
+        );
+    }
+
+    if (text.endsWith(",")) {
+      text =
+        text.slice(
+          0,
+          -1
+        );
+    }
+
+    return text.trim();
+  }
+
+  function workerGroupedPayloadToRaw(value) {
+    let raw = "";
+    let groupLength = 0;
+
+    for (
+      let i = 0;
+      i < value.length;
+      i++
+    ) {
+      const character =
+        value[i];
+
+      if (
+        character === "-" &&
+        groupLength === 10
+      ) {
+        groupLength = 0;
+        continue;
+      }
+
+      raw += character;
+      groupLength++;
+
+      if (groupLength > 10) {
+        return "";
+      }
+    }
+
+    return raw;
+  }
+
+  function base64UrlToText(value) {
+    let normalized =
+      value
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+
+    while (
+      normalized.length % 4
+    ) {
+      normalized += "=";
+    }
+
+    const binary =
+      atob(normalized);
+
+    const bytes =
+      new Uint8Array(
+        binary.length
+      );
+
+    for (
+      let i = 0;
+      i < binary.length;
+      i++
+    ) {
+      bytes[i] =
+        binary.charCodeAt(i);
+    }
+
+    return new TextDecoder()
+      .decode(bytes);
+  }
+
+  async function verifyCodeB(input) {
+    const cleaned =
+      cleanTokenCode(input);
+
+    if (!cleaned) {
+      return {
+        ok: false,
+        error:
+          "Paste a Token Code first."
+      };
+    }
+
+    const firstDash =
+      cleaned.indexOf("-");
+
+    const prefix =
+      firstDash >= 0
+        ? cleaned
+            .slice(
+              0,
+              firstDash
+            )
+            .toUpperCase()
+        : cleaned
+            .slice(0, 2)
+            .toUpperCase();
+
+    if (prefix !== "B2") {
+      return {
+        ok: false,
+        error:
+          "That is not a B2 Token Code. Paste the Token Code returned by the website, not the A1 Redemption Code."
+      };
+    }
+
+    const encoded =
+      workerGroupedPayloadToRaw(
+        firstDash >= 0
+          ? cleaned.slice(
+              firstDash + 1
+            )
+          : cleaned.slice(2)
+      );
+
+    if (!encoded) {
+      return {
+        ok: false,
+        error:
+          "The Token Code contains no data."
+      };
+    }
+
+    if (
+      !/^[A-Za-z0-9_-]+$/.test(
+        encoded
+      )
+    ) {
+      return {
+        ok: false,
+        error:
+          "The Token Code contains invalid characters. Copy it again without changing any letters."
+      };
+    }
 
     let decoded;
 
-
     try {
-
-        decoded =
-            new TextDecoder(
-                "utf-8",
-                {
-                    fatal:
-                        true
-                }
-            )
-                .decode(
-                    decodedBytes
-                );
-
-    } catch (error) {
-
-        return {
-
-            ok:
-                false,
-
-            message:
-                "Token code could not be decoded."
-
-        };
-
+      decoded =
+        base64UrlToText(
+          encoded
+        );
+    } catch (_) {
+      return {
+        ok: false,
+        error:
+          "The Token Code could not be decoded. Make sure you copied the entire code."
+      };
     }
-
 
     const parts =
-        decoded.split("|");
+      decoded.split("|");
 
-
-    if (
-        parts.length !== 8
-    ) {
-
-        return {
-
-            ok:
-                false,
-
-            message:
-                "Invalid token code."
-
-        };
-
+    if (parts.length !== 8) {
+      return {
+        ok: false,
+        error:
+          "The Token Code data is incomplete or has been changed. Copy a fresh Token Code from the website."
+      };
     }
 
+    const [
+      game,
+      installId,
+      redemptionId,
+      rewardText,
+      createdText,
+      expiryText,
+      equationText,
+      signatureHex
+    ] = parts;
 
-    const gameName =
-        parts[0];
-
-    const codeInstallationId =
-        parts[1];
-
-    const redemptionId =
-        parts[2];
-
-    const rewardText =
-        parts[3];
-
-    const createdAtText =
-        parts[4];
-
-    const expiryText =
-        parts[5];
-
-    const equationText =
-        parts[6];
-
-    const signatureHex =
-        parts[7];
-
-
-    if (
-        gameName !==
-        "NEXUS"
-    ) {
-
-        return {
-
-            ok:
-                false,
-
-            message:
-                "Token code is for another game."
-
-        };
-
+    if (game !== "NEXUS") {
+      return {
+        ok: false,
+        error:
+          "This Token Code is not for this game."
+      };
     }
 
-
     if (
-        codeInstallationId !==
-        installationId
+      installId !==
+      installationId
     ) {
-
-        return {
-
-            ok:
-                false,
-
-            message:
-                "Token code belongs to another installation."
-
-        };
-
+      return {
+        ok: false,
+        error:
+          "This Token Code belongs to a different copy of the game. Generate a new Redemption Code from this copy."
+      };
     }
 
-
     if (
-        !isValidCodeString(
-            codeInstallationId,
-            INSTALLATION_ID_LENGTH
-        )
+      !isCodeStringValid(
+        redemptionId,
+        REDEMPTION_ID_LENGTH
+      )
     ) {
-
-        return {
-
-            ok:
-                false,
-
-            message:
-                "Invalid installation ID."
-
-        };
-
+      return {
+        ok: false,
+        error:
+          "The redemption ID inside this Token Code is invalid."
+      };
     }
 
-
     if (
-        !isValidCodeString(
-            redemptionId,
-            REDEMPTION_ID_LENGTH
-        )
+      !/^[0-9a-fA-F]{128}$/.test(
+        signatureHex
+      )
     ) {
-
-        return {
-
-            ok:
-                false,
-
-            message:
-                "Invalid redemption ID."
-
-        };
-
+      return {
+        ok: false,
+        error:
+          "The Token Code signature data is invalid."
+      };
     }
-
 
     const reward =
-        Number(
-            rewardText
-        );
+      Number(rewardText);
 
-
-    if (
-        !Number.isSafeInteger(
-            reward
-        ) ||
-        reward !==
-        REWARD_AMOUNT
-    ) {
-
-        return {
-
-            ok:
-                false,
-
-            message:
-                "Invalid token reward."
-
-        };
-
-    }
-
-
-    const createdAt =
-        Number(
-            createdAtText
-        );
-
+    const created =
+      Number(createdText);
 
     const expiry =
-        Number(
-            expiryText
-        );
-
-
-    if (
-        !Number.isSafeInteger(
-            createdAt
-        ) ||
-        !Number.isSafeInteger(
-            expiry
-        )
-    ) {
-
-        return {
-
-            ok:
-                false,
-
-            message:
-                "Invalid token timing."
-
-        };
-
-    }
-
-
-    if (
-        expiry <=
-        createdAt
-    ) {
-
-        return {
-
-            ok:
-                false,
-
-            message:
-                "Invalid token expiry."
-
-        };
-
-    }
-
-
-    if (
-        expiry -
-        createdAt !==
-        TOKEN_LIFETIME
-    ) {
-
-        return {
-
-            ok:
-                false,
-
-            message:
-                "Invalid token lifetime."
-
-        };
-
-    }
-
-
-    if (
-        Date.now() >=
-        expiry
-    ) {
-
-        return {
-
-            ok:
-                false,
-
-            message:
-                "Token code has expired."
-
-        };
-
-    }
-
+      Number(expiryText);
 
     const equation =
-        calculateEquation(
-            codeInstallationId +
-            redemptionId
+      Number(equationText);
+
+    const now =
+      Date.now();
+
+    if (reward !== REWARD) {
+      return {
+        ok: false,
+        error:
+          "The Token Code reward is invalid."
+      };
+    }
+
+    if (
+      !Number.isSafeInteger(created) ||
+      !Number.isSafeInteger(expiry) ||
+      !Number.isSafeInteger(equation)
+    ) {
+      return {
+        ok: false,
+        error:
+          "The Token Code contains invalid numeric data."
+      };
+    }
+
+    if (now > expiry) {
+      return {
+        ok: false,
+        error:
+          "This Token Code has expired. Generate a new one on the website."
+      };
+    }
+
+    if (
+      created >
+      now + 300000
+    ) {
+      return {
+        ok: false,
+        error:
+          "This Token Code has an invalid creation time."
+      };
+    }
+
+    const expectedEquation =
+      calculateEquation(
+        installId +
+        redemptionId
+      );
+
+    if (
+      expectedEquation === null ||
+      expectedEquation !== equation
+    ) {
+      return {
+        ok: false,
+        error:
+          "The Token Code equation does not match its installation data."
+      };
+    }
+
+    if (
+      usedCodes.includes(
+        redemptionId
+      )
+    ) {
+      return {
+        ok: false,
+        error:
+          "This Token Code has already been used on this installation."
+      };
+    }
+
+    if (
+      !window.crypto ||
+      !window.crypto.subtle ||
+      typeof window.crypto.subtle.importKey !==
+        "function"
+    ) {
+      return {
+        ok: false,
+        error:
+          "Offline signature verification is unavailable in this browser. Open the game in a current Chromium, Firefox, or Safari browser."
+      };
+    }
+
+    try {
+      const publicKey =
+        await window.crypto.subtle.importKey(
+          "spki",
+          base64ToBytes(
+            PUBLIC_KEY_B64
+          ),
+          {
+            name: "Ed25519"
+          },
+          false,
+          ["verify"]
         );
 
-
-    if (
-        equation === null ||
-        String(equation) !==
-        equationText
-    ) {
-
-        return {
-
-            ok:
-                false,
-
-            message:
-                "Token equation is invalid."
-
-        };
-
-    }
-
-
-    if (
-        signatureHex.length !==
-        128
-    ) {
-
-        return {
-
-            ok:
-                false,
-
-            message:
-                "Invalid token signature."
-
-        };
-
-    }
-
-
-    const signature =
-        hexToBytes(
+      const valid =
+        await window.crypto.subtle.verify(
+          "Ed25519",
+          publicKey,
+          hexToBytes(
             signatureHex
+          ),
+          new TextEncoder().encode(
+            parts
+              .slice(0, 7)
+              .join("|")
+          )
         );
 
-
-    if (
-        !signature
-    ) {
-
+      if (!valid) {
         return {
-
-            ok:
-                false,
-
-            message:
-                "Invalid token signature."
-
+          ok: false,
+          error:
+            "The Token Code signature is not valid. The code may be from a different Worker key or may have been altered."
         };
-
+      }
+    } catch (_) {
+      return {
+        ok: false,
+        error:
+          "The Token Code could not be signature-checked offline. Nothing was sent to the internet."
+      };
     }
-
-
-    if (
-        save.redeemedCodes.includes(
-            redemptionId
-        )
-    ) {
-
-        return {
-
-            ok:
-                false,
-
-            message:
-                "This token code has already been used."
-
-        };
-
-    }
-
-
-    let key;
-
-
-    try {
-
-        key =
-            await getPublicKey();
-
-    } catch (error) {
-
-        return {
-
-            ok:
-                false,
-
-            message:
-                "Offline verification is unavailable in this browser."
-
-        };
-
-    }
-
-
-    const payload =
-        parts
-            .slice(
-                0,
-                7
-            )
-            .join("|");
-
-
-    let valid =
-        false;
-
-
-    try {
-
-        valid =
-            await window.crypto.subtle.verify(
-                {
-                    name:
-                        "Ed25519"
-                },
-                key,
-                signature,
-                new TextEncoder().encode(
-                    payload
-                )
-            );
-
-    } catch (error) {
-
-        return {
-
-            ok:
-                false,
-
-            message:
-                "Token signature could not be verified."
-
-        };
-
-    }
-
-
-    if (
-        !valid
-    ) {
-
-        return {
-
-            ok:
-                false,
-
-            message:
-                "Token code verification failed."
-
-        };
-
-    }
-
 
     return {
-
-        ok:
-            true,
-
-        reward:
-            reward,
-
-        redemptionId:
-            redemptionId
-
+      ok: true,
+      reward,
+      redemptionId
     };
+  }
 
-}
+  function setMessage(
+    value,
+    kind = ""
+  ) {
+    message.textContent =
+      value;
 
+    message.className =
+      kind;
+  }
 
-/* =========================================================
-   REDEEM TOKEN
-========================================================= */
+  function openCodePanel(title) {
+    codeTitle.textContent =
+      title;
 
-async function redeemTokenCode() {
+    codePanel.classList.add(
+      "open"
+    );
+  }
 
-    const value =
-        tokenInput.value;
-
-
-    if (
-        value.trim().length === 0
-    ) {
-
-        setMessage(
-            "Enter a token code first.",
-            "error"
-        );
-
-
-        tokenInput.focus();
-
-
-        return;
-
-    }
-
-
-    setMessage(
-        "Verifying token code...",
-        "normal"
+  function closePanel() {
+    codePanel.classList.remove(
+      "open"
     );
 
-
-    const result =
-        await verifyTokenCode(
-            value
-        );
-
-
-    if (
-        !result.ok
-    ) {
-
-        setMessage(
-            result.message,
-            "error"
-        );
-
-
-        tokenInput.focus();
-
-
-        return;
-
-    }
-
-
-    save.tokens +=
-        result.reward;
-
-
-    save.redeemedCodes.push(
-        result.redemptionId
-    );
-
-
-    save.redeemedCodes =
-        save.redeemedCodes.slice(
-            -100
-        );
-
-
-    saveGame();
-
-
-    tokenInput.value =
-        "";
-
-
-    setMessage(
-        "+" +
-        result.reward +
-        " tokens added.",
-        "success"
-    );
-
-}
-
-
-/* =========================================================
-   COPY
-========================================================= */
-
-async function copyRedemptionCode() {
-
-    if (
-        !currentCodeA
-    ) {
-
-        setMessage(
-            "There is no redemption code yet.",
-            "error"
-        );
-
-
-        return;
-
-    }
-
-
-    try {
-
-        if (
-            navigator.clipboard &&
-            navigator.clipboard.writeText
-        ) {
-
-            await navigator.clipboard.writeText(
-                currentCodeA
-            );
-
-
-            setMessage(
-                "Redemption code copied.",
-                "success"
-            );
-
-
-            return;
-
-        }
-
-    } catch (error) {
-
-    }
-
-
-    try {
-
-        const helper =
-            document.createElement(
-                "textarea"
-            );
-
-
-        helper.value =
-            currentCodeA;
-
-
-        helper.style.position =
-            "fixed";
-
-
-        helper.style.left =
-            "-9999px";
-
-
-        document.body.appendChild(
-            helper
-        );
-
-
-        helper.focus();
-
-        helper.select();
-
-
-        document.execCommand(
-            "copy"
-        );
-
-
-        helper.remove();
-
-
-        setMessage(
-            "Redemption code copied.",
-            "success"
-        );
-
-    } catch (error) {
-
-        setMessage(
-            "Copy failed. Copy the code manually.",
-            "error"
-        );
-
-    }
-
-}
-
-
-copyButton.addEventListener(
-    "click",
-    function(event) {
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
-        copyRedemptionCode();
-
-    }
-);
-
-
-/* =========================================================
-   INPUT
-========================================================= */
-
-tokenInput.addEventListener(
-    "input",
-    function() {
-
-        /*
-           Token codes contain hexadecimal/base64url
-           characters and hyphens.
-           Keep their case exactly as entered.
-        */
-
-        tokenInput.value =
-            tokenInput.value
-                .replace(
-                    /\s+/g,
-                    ""
-                );
-
-    }
-);
-
-
-tokenInput.addEventListener(
-    "keydown",
-    function(event) {
-
-        if (
-            event.key ===
-            "Enter"
-        ) {
-
-            event.preventDefault();
-
-            redeemTokenCode();
-
-        }
-
-
-        if (
-            event.key ===
-            "Escape"
-        ) {
-
-            event.preventDefault();
-
-            tokenInput.blur();
-
-
-            state =
-                STATES.TOKENS;
-
-
-            hideRedeemControls();
-
-        }
-
-    }
-);
-
-
-/* =========================================================
-   CTRL+C / CTRL+V
-========================================================= */
-
-document.addEventListener(
-    "keydown",
-    async function(event) {
-
-        if (
-            state !==
-            STATES.REDEEM
-        ) {
-
-            return;
-
-        }
-
-
-        if (
-            (
-                event.ctrlKey ||
-                event.metaKey
-            ) &&
-            (
-                event.key === "c" ||
-                event.key === "C"
-            )
-        ) {
-
-            if (
-                document.activeElement !==
-                tokenInput
-            ) {
-
-                event.preventDefault();
-
-                await copyRedemptionCode();
-
-            }
-
-
-            return;
-
-        }
-
-
-        if (
-            (
-                event.ctrlKey ||
-                event.metaKey
-            ) &&
-            (
-                event.key === "v" ||
-                event.key === "V"
-            )
-        ) {
-
-            if (
-                document.activeElement !==
-                tokenInput
-            ) {
-
-                try {
-
-                    const clipboard =
-                        await navigator.clipboard.readText();
-
-
-                    tokenInput.value =
-                        clipboard;
-
-
-                    tokenInput.dispatchEvent(
-                        new Event(
-                            "input"
-                        )
-                    );
-
-
-                    tokenInput.focus();
-
-
-                    event.preventDefault();
-
-                } catch (error) {
-
-                    tokenInput.focus();
-
-                }
-
-            }
-
-        }
-
-    }
-);
-
-
-/* =========================================================
-   MESSAGES
-========================================================= */
-
-function setMessage(
-    message,
-    type
-) {
-
-    redemptionMessage =
-        message;
-
-    redemptionMessageType =
-        type;
-
-}
-
-
-function getMessageColour() {
-
-    if (
-        redemptionMessageType ===
-        "success"
-    ) {
-
-        return "#39ff88";
-
-    }
-
-
-    if (
-        redemptionMessageType ===
+    generatedCode.blur();
+    codeInput.blur();
+  }
+
+  function showRedemptionCode() {
+    if (tokens >= 10) {
+      setMessage(
+        "You already have 10 or more tokens. Spend some tokens before getting another Token Code.",
         "error"
-    ) {
-
-        return "#ff6666";
-
+      );
+      return;
     }
 
-
-    return "#777777";
-
-}
-
-
-/* =========================================================
-   REDEMPTION RETRIES
-========================================================= */
-
-async function requestNewCode() {
-
-    if (
-        cooldownActive
-    ) {
-
-        state =
-            STATES.COOLDOWN;
-
-        return;
-
-    }
-
-
-    if (
-        retryCount >=
-        MAX_RETRIES
-    ) {
-
-        beginCooldown();
-
-        return;
-
-    }
-
-
-    retryCount++;
-
-
-    await createCodeA();
-
-
-    setMessage(
-        "New redemption code generated. Attempt " +
-        retryCount +
-        " of " +
-        MAX_RETRIES +
-        ".",
-        "normal"
-    );
-
-}
-
-
-function beginCooldown() {
-
-    cooldownActive =
-        true;
-
-
-    cooldownRemaining =
-        300;
-
-
-    cooldownLastUpdate =
-        performance.now();
-
-
-    state =
-        STATES.COOLDOWN;
-
-}
-
-
-function updateCooldown(
-    now
-) {
-
-    if (
-        !cooldownActive
-    ) {
-
-        return;
-
-    }
-
-
-    const elapsed =
-        (
-            now -
-            cooldownLastUpdate
-        ) /
-        1000;
-
-
-    cooldownLastUpdate =
-        now;
-
-
-    cooldownRemaining -=
-        elapsed;
-
-
-    if (
-        cooldownRemaining <=
-        0
-    ) {
-
-        cooldownRemaining =
-            0;
-
-
-        cooldownActive =
-            false;
-
-
-        retryCount =
-            0;
-
-
-        setMessage(
-            "Cooldown complete. You have 3 new attempts.",
-            "success"
-        );
-
-
+    try {
+      currentRedemptionCode =
         createCodeA();
 
-    }
+      generatedCode.value =
+        currentRedemptionCode;
 
-}
+      codeInput.value = "";
 
+      setMessage(
+        "Copy the A1 Redemption Code into the website redemption box. The website will return a B2 Token Code. Paste that B2 code into TOKEN CODE below."
+      );
 
-/* =========================================================
-   REDEMPTION CONTROL VISIBILITY
-========================================================= */
+      openCodePanel(
+        "GET TOKENS"
+      );
 
-function showRedeemControls() {
-
-    tokenInput.style.display =
-        "block";
-
-
-    copyButton.style.display =
-        "block";
-
-}
-
-
-function hideRedeemControls() {
-
-    tokenInput.style.display =
-        "none";
-
-
-    copyButton.style.display =
-        "none";
-
-
-    tokenInput.blur();
-
-}
-
-
-/* =========================================================
-   MENU MOVEMENT
-========================================================= */
-
-function menuMove(
-    direction
-) {
-
-    menuSelection +=
-        direction;
-
-
-    if (
-        menuSelection < 0
-    ) {
-
-        menuSelection =
-            1;
-
-    }
-
-
-    if (
-        menuSelection > 1
-    ) {
-
-        menuSelection =
-            0;
-
-    }
-
-}
-
-
-function difficultyMove(
-    direction
-) {
-
-    difficultySelection +=
-        direction;
-
-
-    if (
-        difficultySelection < 0
-    ) {
-
-        difficultySelection =
-            0;
-
-    }
-
-
-    if (
-        difficultySelection >
-        save.unlockedDifficulty
-    ) {
-
-        difficultySelection =
-            save.unlockedDifficulty;
-
-    }
-
-
-    if (
-        difficultySelection > 2
-    ) {
-
-        difficultySelection =
-            2;
-
-    }
-
-}
-
-
-function roundMove(
-    direction
-) {
-
-    roundSelection +=
-        direction;
-
-
-    if (
-        roundSelection < 0
-    ) {
-
-        roundSelection =
-            0;
-
-    }
-
-
-    if (
-        roundSelection > 4
-    ) {
-
-        roundSelection =
-            4;
-
-    }
-
-}
-
-
-function resultMove(
-    direction
-) {
-
-    resultSelection +=
-        direction;
-
-
-    if (
-        resultSelection < 0
-    ) {
-
-        resultSelection =
-            1;
-
-    }
-
-
-    if (
-        resultSelection > 1
-    ) {
-
-        resultSelection =
-            0;
-
-    }
-
-}
-
-
-function tokenMove(
-    direction
-) {
-
-    tokenSelection +=
-        direction;
-
-
-    if (
-        tokenSelection < 0
-    ) {
-
-        tokenSelection =
-            1;
-
-    }
-
-
-    if (
-        tokenSelection > 1
-    ) {
-
-        tokenSelection =
-            0;
-
-    }
-
-}
-
-
-function redeemMove(
-    direction
-) {
-
-    redeemSelection +=
-        direction;
-
-
-    if (
-        redeemSelection < 0
-    ) {
-
-        redeemSelection =
-            3;
-
-    }
-
-
-    if (
-        redeemSelection > 3
-    ) {
-
-        redeemSelection =
-            0;
-
-    }
-
-}
-
-
-/* =========================================================
-   DIFFICULTY / COST
-========================================================= */
-
-function getDifficulty() {
-
-    return difficulties[
-        save.difficulty
-    ];
-
-}
-
-
-function getRoundCost(
-    difficultyIndex,
-    roundIndex
-) {
-
-    const multiplier =
-        difficultyIndex === 0
-            ? 1
-            : difficultyIndex === 1
-                ? 2
-                : 5;
-
-
-    return (
-        slowRoundCosts[
-            roundIndex
-        ] *
-        multiplier
-    );
-
-}
-
-
-function getRoundWinning(
-    difficultyIndex,
-    roundIndex
-) {
-
-    return (
-        getRoundCost(
-            difficultyIndex,
-            roundIndex
-        ) *
-        2
-    );
-
-}
-
-
-/* =========================================================
-   START ROUND
-========================================================= */
-
-function startRound(
-    roundNumber
-) {
-
-    const roundIndex =
-        roundNumber -
-        1;
-
-
-    const cost =
-        getRoundCost(
-            save.difficulty,
-            roundIndex
-        );
-
-
-    if (
-        save.tokens <
-        cost
-    ) {
-
-        setMessage(
-            "You need " +
-            cost +
-            " tokens.",
-            "error"
-        );
-
-
-        state =
-            STATES.TOKENS;
-
-
-        return;
-
-    }
-
-
-    save.tokens -=
-        cost;
-
-
-    saveGame();
-
-
-    playerScore =
-        0;
-
-    aiScore =
-        0;
-
-
-    playerY =
-        HEIGHT / 2 -
-        PADDLE_HEIGHT / 2;
-
-
-    aiY =
-        HEIGHT / 2 -
-        PADDLE_HEIGHT / 2;
-
-
-    paused =
-        false;
-
-
-    matchResult =
+      codeInput.focus();
+    } catch (_) {
+      generatedCode.value =
         "";
 
+      setMessage(
+        "Could not generate a Redemption Code.",
+        "error"
+      );
 
-    resetBall(
-        Math.random() <
-            0.5
-            ? -1
-            : 1
-    );
+      openCodePanel(
+        "GET TOKENS"
+      );
+    }
+  }
 
+  async function copyText(
+    value,
+    successText
+  ) {
+    if (!value) {
+      setMessage(
+        "There is no code to copy.",
+        "error"
+      );
+      return;
+    }
 
-    state =
-        STATES.PLAYING;
+    try {
+      await navigator.clipboard.writeText(
+        value
+      );
 
-}
+      setMessage(
+        successText,
+        "ok"
+      );
 
+      return;
+    } catch (_) {}
 
-/* =========================================================
-   PONG
-========================================================= */
+    try {
+      const helper =
+        document.createElement(
+          "textarea"
+        );
 
-const PADDLE_WIDTH =
-    18;
+      helper.value =
+        value;
 
-const PADDLE_HEIGHT =
-    110;
+      helper.setAttribute(
+        "readonly",
+        ""
+      );
 
-const PLAYER_X =
-    40;
+      helper.style.position =
+        "fixed";
 
-const AI_X =
-    WIDTH -
-    58;
+      helper.style.left =
+        "-9999px";
 
-const BALL_SIZE =
-    16;
+      document.body.appendChild(
+        helper
+      );
 
+      helper.select();
 
-let playerY =
-    HEIGHT / 2 -
-    PADDLE_HEIGHT / 2;
+      document.execCommand(
+        "copy"
+      );
 
-let aiY =
-    HEIGHT / 2 -
-    PADDLE_HEIGHT / 2;
+      helper.remove();
 
-let ballX =
-    WIDTH / 2;
+      setMessage(
+        successText,
+        "ok"
+      );
+    } catch (_) {
+      setMessage(
+        "Copy was unavailable. Select the code and press Ctrl+C.",
+        "error"
+      );
+    }
+  }
 
-let ballY =
-    HEIGHT / 2;
+  getTokensBtn.addEventListener(
+    "click",
+    showRedemptionCode
+  );
 
-let ballVX =
-    0;
+  closeCode.addEventListener(
+    "click",
+    closePanel
+  );
 
-let ballVY =
-    0;
+  copyGenerated.addEventListener(
+    "click",
+    () =>
+      copyText(
+        generatedCode.value.trim(),
+        "Redemption Code copied."
+      )
+  );
 
-let ballSpeed =
-    0;
+  copyToken.addEventListener(
+    "click",
+    () =>
+      copyText(
+        cleanTokenCode(
+          codeInput.value
+        ),
+        "Token Code copied."
+      )
+  );
 
-let playerScore =
-    0;
-
-let aiScore =
-    0;
-
-let matchResult =
-    "";
-
-
-const keys = {};
-
-
-window.addEventListener(
+  codeInput.addEventListener(
     "keydown",
-    function(event) {
+    event => {
+      if (
+        event.key ===
+        "Escape"
+      ) {
+        closePanel();
+      }
 
-        keys[
-            event.key
-        ] =
-            true;
-
+      if (
+        event.ctrlKey &&
+        event.key.toLowerCase() ===
+          "a"
+      ) {
+        event.stopPropagation();
+      }
     }
-);
+  );
 
+  generatedCode.addEventListener(
+    "focus",
+    () => generatedCode.select()
+  );
 
-window.addEventListener(
-    "keyup",
-    function(event) {
+  codeInput.addEventListener(
+    "input",
+    () => {}
+  );
 
-        keys[
-            event.key
-        ] =
-            false;
+  submitCode.addEventListener(
+    "click",
+    async () => {
+      const value =
+        cleanTokenCode(
+          codeInput.value
+        );
 
+      codeInput.value =
+        value;
+
+      if (!value) {
+        setMessage(
+          "Paste a B2 Token Code first.",
+          "error"
+        );
+
+        codeInput.focus();
+
+        return;
+      }
+
+      submitCode.disabled =
+        true;
+
+      setMessage(
+        "Verifying locally...",
+        ""
+      );
+
+      const result =
+        await verifyCodeB(
+          value
+        );
+
+      submitCode.disabled =
+        false;
+
+      if (!result.ok) {
+        setMessage(
+          result.error,
+          "error"
+        );
+
+        return;
+      }
+
+      tokens +=
+        result.reward;
+
+      saveTokens();
+
+      usedCodes.push(
+        result.redemptionId
+      );
+
+      if (
+        usedCodes.length >
+        100
+      ) {
+        usedCodes =
+          usedCodes.slice(
+            -100
+          );
+      }
+
+      storageSet(
+        "pong_used_codes",
+        JSON.stringify(
+          usedCodes
+        )
+      );
+
+      codeInput.value =
+        "";
+
+      generatedCode.value =
+        "";
+
+      currentRedemptionCode =
+        "";
+
+      setMessage(
+        "Token accepted. +" +
+        result.reward +
+        " tokens.",
+        "ok"
+      );
     }
-);
+  );
 
+  function getRoundCost() {
+    return (
+      BASE_COSTS[
+        round - 1
+      ] *
+      DIFFICULTY_MULTIPLIER[
+        difficulty
+      ]
+    );
+  }
 
-function resetBall(
+  function getRoundPayout() {
+    return (
+      getRoundCost() *
+      2
+    );
+  }
+
+  function isDifficultyUnlocked(
+    index
+  ) {
+    if (index === 0) {
+      return true;
+    }
+
+    return (
+      storageGet(
+        "pong_unlock_" +
+        index
+      ) === "1"
+    );
+  }
+
+  function unlockNextDifficulty() {
+    if (
+      difficulty <
+      DIFFICULTIES.length - 1
+    ) {
+      storageSet(
+        "pong_unlock_" +
+        (difficulty + 1),
+        "1"
+      );
+    }
+  }
+
+  function resetBall(
     direction
-) {
+  ) {
+    ball.x =
+      canvas.width / 2;
 
-    const difficulty =
-        getDifficulty();
+    ball.y =
+      canvas.height / 2;
 
-
-    const roundMultiplier =
-        1 +
-        (
-            save.currentRound -
-            1
-        ) *
-        0.08;
-
-
-    ballX =
-        WIDTH / 2;
-
-
-    ballY =
-        HEIGHT / 2;
-
-
-    ballSpeed =
-        Math.min(
-            difficulty.ballStartSpeed *
-            roundMultiplier,
-            difficulty.ballMaxSpeed
-        );
-
-
-    const angle =
-        Math.random() *
-        0.75 -
-        0.375;
-
-
-    ballVX =
-        ballSpeed *
-        direction;
-
-
-    ballVY =
-        ballSpeed *
-        angle;
-
-}
-
-
-function updatePlayer(
-    dt
-) {
-
-    let movement =
-        0;
-
-
-    if (
-        keys["w"] ||
-        keys["W"] ||
-        keys["ArrowUp"]
-    ) {
-
-        movement -=
-            1;
-
-    }
-
-
-    if (
-        keys["s"] ||
-        keys["S"] ||
-        keys["ArrowDown"]
-    ) {
-
-        movement +=
-            1;
-
-    }
-
-
-    playerY +=
-        movement *
-        540 *
-        dt;
-
-
-    playerY =
-        Math.max(
-            0,
-            Math.min(
-                HEIGHT -
-                PADDLE_HEIGHT,
-                playerY
-            )
-        );
-
-}
-
-
-function updateAI(
-    dt
-) {
-
-    const difficulty =
-        getDifficulty();
-
-
-    const target =
-        ballY -
-        PADDLE_HEIGHT / 2;
-
-
-    const roundMultiplier =
-        1 +
-        (
-            save.currentRound -
-            1
-        ) *
-        0.035;
-
+    const baseSpeed =
+      [350,410,470][
+        difficulty
+      ];
 
     const speed =
-        difficulty.aiSpeed *
-        roundMultiplier;
+      baseSpeed +
+      (round - 1) * 22;
 
+    const angle =
+      Math.random() *
+        0.8 -
+      0.4;
 
-    if (
-        aiY < target
-    ) {
+    ball.vx =
+      direction *
+      speed;
 
-        aiY +=
-            speed *
-            dt;
+    ball.vy =
+      speed *
+      angle;
+  }
 
+  function startRound() {
+    const cost =
+      getRoundCost();
+
+    if (tokens < cost) {
+      winner =
+        "Not enough tokens.";
+
+      screen =
+        "result";
+
+      return;
     }
 
+    tokens -=
+      cost;
 
-    if (
-        aiY > target
-    ) {
+    saveTokens();
 
-        aiY -=
-            speed *
-            dt;
+    playerScore = 0;
+    aiScore = 0;
+    paused = false;
+    winner = "";
 
-    }
-
+    playerY =
+      (canvas.height -
+        PADDLE_H) /
+      2;
 
     aiY =
-        Math.max(
-            0,
-            Math.min(
-                HEIGHT -
-                PADDLE_HEIGHT,
-                aiY
-            )
-        );
-
-}
-
-
-function updateBall(
-    dt
-) {
-
-    ballX +=
-        ballVX *
-        dt;
-
-
-    ballY +=
-        ballVY *
-        dt;
-
-
-    if (
-        ballY -
-        BALL_SIZE / 2 <=
-        0
-    ) {
-
-        ballY =
-            BALL_SIZE / 2;
-
-
-        ballVY =
-            Math.abs(
-                ballVY
-            );
-
-    }
-
-
-    if (
-        ballY +
-        BALL_SIZE / 2 >=
-        HEIGHT
-    ) {
-
-        ballY =
-            HEIGHT -
-            BALL_SIZE / 2;
-
-
-        ballVY =
-            -Math.abs(
-                ballVY
-            );
-
-    }
-
-
-    if (
-        ballVX < 0 &&
-        ballX -
-        BALL_SIZE / 2 <=
-        PLAYER_X +
-        PADDLE_WIDTH &&
-        ballX +
-        BALL_SIZE / 2 >=
-        PLAYER_X &&
-        ballY >=
-        playerY &&
-        ballY <=
-        playerY +
-        PADDLE_HEIGHT
-    ) {
-
-        ballX =
-            PLAYER_X +
-            PADDLE_WIDTH +
-            BALL_SIZE / 2;
-
-
-        bounceFromPaddle(
-            playerY,
-            true
-        );
-
-    }
-
-
-    if (
-        ballVX > 0 &&
-        ballX +
-        BALL_SIZE / 2 >=
-        AI_X &&
-        ballX -
-        BALL_SIZE / 2 <=
-        AI_X +
-        PADDLE_WIDTH &&
-        ballY >=
-        aiY &&
-        ballY <=
-        aiY +
-        PADDLE_HEIGHT
-    ) {
-
-        ballX =
-            AI_X -
-            BALL_SIZE / 2;
-
-
-        bounceFromPaddle(
-            aiY,
-            false
-        );
-
-    }
-
-
-    if (
-        ballX <
-        -40
-    ) {
-
-        aiScore++;
-
-        checkScore();
-
-    }
-
-
-    if (
-        ballX >
-        WIDTH +
-        40
-    ) {
-
-        playerScore++;
-
-        checkScore();
-
-    }
-
-}
-
-
-function bounceFromPaddle(
-    paddleY,
-    playerSide
-) {
-
-    const difficulty =
-        getDifficulty();
-
-
-    const relative =
-        (
-            ballY -
-            (
-                paddleY +
-                PADDLE_HEIGHT / 2
-            )
-        ) /
-        (
-            PADDLE_HEIGHT / 2
-        );
-
-
-    ballSpeed =
-        Math.min(
-            ballSpeed * 1.045,
-            difficulty.ballMaxSpeed
-        );
-
-
-    ballVY =
-        relative *
-        ballSpeed *
-        0.82;
-
-
-    const horizontal =
-        Math.sqrt(
-            Math.max(
-                0,
-                ballSpeed *
-                ballSpeed -
-                ballVY *
-                ballVY
-            )
-        );
-
-
-    ballVX =
-        playerSide
-            ? horizontal
-            : -horizontal;
-
-}
-
-
-function checkScore() {
-
-    const target =
-        roundTargets[
-            save.currentRound - 1
-        ];
-
-
-    if (
-        playerScore >=
-        target
-    ) {
-
-        finishRound(
-            true
-        );
-
-
-        return;
-
-    }
-
-
-    if (
-        aiScore >=
-        target
-    ) {
-
-        finishRound(
-            false
-        );
-
-
-        return;
-
-    }
-
+      (canvas.height -
+        PADDLE_H) /
+      2;
 
     resetBall(
-        playerScore >
-        aiScore
-            ? -1
-            : 1
+      Math.random() < 0.5
+        ? -1
+        : 1
     );
 
-}
+    screen =
+      "game";
+  }
 
+  function beginDifficulty(
+    index
+  ) {
+    if (
+      !isDifficultyUnlocked(
+        index
+      )
+    ) {
+      return;
+    }
 
-function finishRound(
+    difficulty =
+      index;
+
+    round =
+      1;
+
+    startRound();
+  }
+
+  function nextRound() {
+    if (round < 5) {
+      round++;
+
+      startRound();
+
+      return;
+    }
+
+    unlockNextDifficulty();
+
+    if (
+      difficulty <
+      DIFFICULTIES.length - 1
+    ) {
+      const completedName =
+        DIFFICULTIES[
+          difficulty
+        ];
+
+      const next =
+        difficulty + 1;
+
+      difficulty =
+        next;
+
+      menuIndex =
+        next;
+
+      winner =
+        "Completed " +
+        completedName +
+        ". " +
+        DIFFICULTIES[
+          difficulty
+        ] +
+        " is now unlocked.";
+
+      screen =
+        "menu";
+    } else {
+      winner =
+        "You completed all three difficulties!";
+
+      screen =
+        "result";
+    }
+  }
+
+  function endRound(
     playerWon
-) {
+  ) {
+    if (playerWon) {
+      const payout =
+        getRoundPayout();
 
-    matchResult =
-        playerWon
-            ? "WIN"
-            : "LOSS";
+      tokens +=
+        payout;
 
+      saveTokens();
 
-    if (
-        playerWon
-    ) {
-
-        save.tokens +=
-            getRoundWinning(
-                save.difficulty,
-                save.currentRound - 1
-            );
-
+      winner =
+        "You won Round " +
+        round +
+        "! +" +
+        payout +
+        " tokens.";
+    } else {
+      winner =
+        "You lost Round " +
+        round +
+        ".";
     }
 
+    screen =
+      "result";
+  }
 
+  function update(dt) {
     if (
-        playerWon &&
-        save.currentRound ===
-        5
+      screen !==
+        "game" ||
+      paused
     ) {
-
-        if (
-            save.unlockedDifficulty <
-            2
-        ) {
-
-            save.unlockedDifficulty++;
-
-        }
-
+      return;
     }
 
-
-    saveGame();
-
-
-    resultSelection =
-        0;
-
-
-    state =
-        STATES.RESULT;
-
-}
-
-
-/* =========================================================
-   RESULT
-========================================================= */
-
-function chooseResult() {
+    const playerSpeed =
+      520;
 
     if (
-        resultSelection ===
-        0
+      keys.w ||
+      keys.W ||
+      keys.ArrowUp
     ) {
+      playerY -=
+        playerSpeed *
+        dt;
+    }
 
-        if (
-            matchResult ===
-            "WIN" &&
-            save.currentRound <
-            5
-        ) {
+    if (
+      keys.s ||
+      keys.S ||
+      keys.ArrowDown
+    ) {
+      playerY +=
+        playerSpeed *
+        dt;
+    }
 
-            save.currentRound++;
+    if (touchDirection) {
+      playerY +=
+        touchDirection *
+        playerSpeed *
+        dt;
+    }
 
-            saveGame();
+    playerY =
+      Math.max(
+        0,
+        Math.min(
+          canvas.height -
+            PADDLE_H,
+          playerY
+        )
+      );
 
-        }
+    const aiTarget =
+      ball.y -
+      PADDLE_H / 2;
 
+    const aiSpeed =
+      [270,380,500][
+        difficulty
+      ];
 
-        const cost =
-            getRoundCost(
-                save.difficulty,
-                save.currentRound - 1
-            );
+    const aiDifference =
+      aiTarget -
+      aiY;
 
+    if (
+      Math.abs(
+        aiDifference
+      ) > 5
+    ) {
+      aiY +=
+        Math.sign(
+          aiDifference
+        ) *
+        Math.min(
+          Math.abs(
+            aiDifference
+          ),
+          aiSpeed *
+            dt
+        );
+    }
 
-        if (
-            save.tokens <
-            cost
-        ) {
+    aiY =
+      Math.max(
+        0,
+        Math.min(
+          canvas.height -
+            PADDLE_H,
+          aiY
+        )
+      );
 
-            state =
-                STATES.TOKENS;
+    ball.x +=
+      ball.vx *
+      dt;
 
+    ball.y +=
+      ball.vy *
+      dt;
 
-            return;
+    if (
+      ball.y <=
+      BALL_SIZE / 2
+    ) {
+      ball.y =
+        BALL_SIZE / 2;
 
-        }
+      ball.vy =
+        Math.abs(
+          ball.vy
+        );
+    }
 
+    if (
+      ball.y >=
+      canvas.height -
+        BALL_SIZE / 2
+    ) {
+      ball.y =
+        canvas.height -
+        BALL_SIZE / 2;
 
-        startRound(
-            save.currentRound
+      ball.vy =
+        -Math.abs(
+          ball.vy
+        );
+    }
+
+    const playerHit =
+      ball.x -
+        BALL_SIZE / 2 <=
+        PLAYER_X +
+        PADDLE_W &&
+      ball.x +
+        BALL_SIZE / 2 >=
+        PLAYER_X &&
+      ball.y >= playerY &&
+      ball.y <=
+        playerY +
+        PADDLE_H &&
+      ball.vx < 0;
+
+    if (playerHit) {
+      ball.x =
+        PLAYER_X +
+        PADDLE_W +
+        BALL_SIZE / 2;
+
+      const offset =
+        (
+          ball.y -
+          (
+            playerY +
+            PADDLE_H / 2
+          )
+        ) /
+        (PADDLE_H / 2);
+
+      const speed =
+        Math.min(
+          Math.hypot(
+            ball.vx,
+            ball.vy
+          ) *
+            1.045,
+          850
         );
 
+      ball.vx =
+        speed;
 
-        return;
-
+      ball.vy =
+        offset *
+        speed *
+        0.9;
     }
 
+    const aiHit =
+      ball.x +
+        BALL_SIZE / 2 >=
+        AI_X &&
+      ball.x -
+        BALL_SIZE / 2 <=
+        AI_X +
+        PADDLE_W &&
+      ball.y >= aiY &&
+      ball.y <=
+        aiY +
+        PADDLE_H &&
+      ball.vx > 0;
 
-    state =
-        STATES.MENU;
+    if (aiHit) {
+      ball.x =
+        AI_X -
+        BALL_SIZE / 2;
 
-}
+      const offset =
+        (
+          ball.y -
+          (
+            aiY +
+            PADDLE_H / 2
+          )
+        ) /
+        (PADDLE_H / 2);
 
+      const speed =
+        Math.min(
+          Math.hypot(
+            ball.vx,
+            ball.vy
+          ) *
+            1.045,
+          850
+        );
 
-/* =========================================================
-   DRAW HELPERS
-========================================================= */
+      ball.vx =
+        -speed;
 
-function clearScreen(
-    colour
-) {
+      ball.vy =
+        offset *
+        speed *
+        0.9;
+    }
 
+    if (
+      ball.x <
+      -30
+    ) {
+      aiScore++;
+
+      if (
+        aiScore >=
+        TARGETS[
+          round - 1
+        ]
+      ) {
+        endRound(false);
+      } else {
+        resetBall(1);
+      }
+    }
+
+    if (
+      ball.x >
+      canvas.width +
+        30
+    ) {
+      playerScore++;
+
+      if (
+        playerScore >=
+        TARGETS[
+          round - 1
+        ]
+      ) {
+        endRound(true);
+      } else {
+        resetBall(-1);
+      }
+    }
+  }
+
+  function clearCanvas() {
     ctx.fillStyle =
-        colour;
-
+      "#11151a";
 
     ctx.fillRect(
-        0,
-        0,
-        WIDTH,
-        HEIGHT
+      0,
+      0,
+      canvas.width,
+      canvas.height
     );
+  }
 
-}
-
-
-function drawText(
+  function text(
     value,
     x,
     y,
     size,
-    colour,
     align = "center"
-) {
-
+  ) {
     ctx.fillStyle =
-        colour;
-
+      "#fff";
 
     ctx.font =
-        "bold " +
-        size +
-        "px Arial";
-
+      "bold " +
+      size +
+      "px Arial";
 
     ctx.textAlign =
-        align;
-
+      align;
 
     ctx.textBaseline =
-        "middle";
-
+      "alphabetic";
 
     ctx.fillText(
-        value,
-        x,
-        y
+      String(value),
+      x,
+      y
     );
+  }
 
-}
+  function wrapLines(
+    value,
+    size,
+    maxWidth
+  ) {
+    ctx.font =
+      "bold " +
+      size +
+      "px Arial";
 
+    const words =
+      String(value)
+        .split(/\s+/);
 
-function drawPanel(
+    const lines = [];
+    let line = "";
+
+    for (
+      const word of words
+    ) {
+      const test =
+        line
+          ? line +
+            " " +
+            word
+          : word;
+
+      if (
+        ctx.measureText(
+          test
+        ).width <=
+          maxWidth ||
+        !line
+      ) {
+        line =
+          test;
+      } else {
+        lines.push(
+          line
+        );
+
+        line =
+          word;
+      }
+    }
+
+    if (line) {
+      lines.push(
+        line
+      );
+    }
+
+    return lines;
+  }
+
+  function wrappedText(
+    value,
     x,
-    y,
-    width,
-    height,
-    fill,
-    border
-) {
-
+    topY,
+    size,
+    maxWidth,
+    lineHeight
+  ) {
     ctx.fillStyle =
-        fill;
+      "#fff";
 
+    ctx.font =
+      "bold " +
+      size +
+      "px Arial";
 
-    ctx.fillRect(
-        x,
-        y,
-        width,
-        height
+    ctx.textAlign =
+      "center";
+
+    ctx.textBaseline =
+      "top";
+
+    const lines =
+      wrapLines(
+        value,
+        size,
+        maxWidth
+      );
+
+    lines.forEach(
+      (
+        line,
+        index
+      ) =>
+        ctx.fillText(
+          line,
+          x,
+          topY +
+            index *
+              lineHeight
+        )
     );
 
+    return {
+      lines,
+      height:
+        lines.length *
+        lineHeight
+    };
+  }
 
-    ctx.strokeStyle =
-        border;
-
-
-    ctx.lineWidth =
-        2;
-
-
-    ctx.strokeRect(
-        x,
-        y,
-        width,
-        height
-    );
-
-}
-
-
-function drawButton(
-    label,
+  function wrappedTextLimited(
+    value,
     x,
-    y,
-    width,
-    height,
-    selected,
-    fill = "#181818",
-    border = "#444444",
-    colour = "#ffffff"
-) {
+    topY,
+    size,
+    maxWidth,
+    lineHeight,
+    maxLines
+  ) {
+    ctx.fillStyle =
+      "#fff";
 
-    let buttonFill =
-        fill;
+    ctx.font =
+      "bold " +
+      size +
+      "px Arial";
 
-    let buttonBorder =
-        border;
+    ctx.textAlign =
+      "center";
 
-    let buttonColour =
-        colour;
+    ctx.textBaseline =
+      "top";
 
+    let lines =
+      wrapLines(
+        value,
+        size,
+        maxWidth
+      );
 
     if (
-        selected
+      lines.length >
+      maxLines
     ) {
+      lines =
+        lines.slice(
+          0,
+          maxLines
+        );
 
-        buttonFill =
-            "#ffffff";
+      let last =
+        lines[
+          maxLines - 1
+        ];
 
+      while (
+        ctx.measureText(
+          last + "…"
+        ).width >
+          maxWidth &&
+        last.length > 1
+      ) {
+        last =
+          last.slice(
+            0,
+            -1
+          );
+      }
 
-        buttonBorder =
-            "#ffffff";
-
-
-        buttonColour =
-            "#111111";
-
+      lines[
+        maxLines - 1
+      ] =
+        last + "…";
     }
 
-
-    drawPanel(
-        x,
-        y,
-        width,
-        height,
-        buttonFill,
-        buttonBorder
+    lines.forEach(
+      (
+        line,
+        index
+      ) =>
+        ctx.fillText(
+          line,
+          x,
+          topY +
+            index *
+              lineHeight
+        )
     );
 
-
-    drawText(
-        label,
-        x +
-        width / 2,
-        y +
-        height / 2,
-        18,
-        buttonColour
-    );
-
-}
-
-
-/* =========================================================
-   MENU
-========================================================= */
-
-function drawMenu() {
-
-    clearScreen(
-        "#101010"
-    );
-
-
-    drawText(
-        "PONG",
-        WIDTH / 2,
-        120,
-        64,
-        "#ffffff"
-    );
-
-
-    drawText(
-        "TOKENS  " +
-        save.tokens,
-        WIDTH / 2,
-        175,
-        20,
-        "#ffffff"
-    );
-
-
-    drawButton(
-        "PLAY",
-        WIDTH / 2 - 220,
-        255,
-        440,
-        65,
-        menuSelection === 0
-    );
-
-
-    drawButton(
-        "TOKENS",
-        WIDTH / 2 - 220,
-        330,
-        440,
-        65,
-        menuSelection === 1
-    );
-
-
-    drawText(
-        "Click an option or use W / S / ↑ / ↓",
-        WIDTH / 2,
-        480,
-        15,
-        "#888888"
-    );
-
-
-    drawText(
-        "ENTER SELECTS",
-        WIDTH / 2,
-        510,
-        13,
-        "#666666"
-    );
-
-}
-
-
-/* =========================================================
-   DIFFICULTY
-========================================================= */
-
-function drawDifficulty() {
-
-    clearScreen(
-        "#101010"
-    );
-
-
-    drawText(
-        "DIFFICULTY",
-        WIDTH / 2,
-        72,
-        44,
-        "#ffffff"
-    );
-
-
-    for (
-        let i = 0;
-        i < 3;
-        i++
-    ) {
-
-        const difficulty =
-            difficulties[i];
-
-
-        const unlocked =
-            i <=
-            save.unlockedDifficulty;
-
-
-        const selected =
-            difficultySelection ===
-            i;
-
-
-        let fill =
-            difficulty.panel;
-
-
-        let border =
-            difficulty.border;
-
-
-        let colour =
-            difficulty.primary;
-
-
-        if (
-            selected &&
-            unlocked
-        ) {
-
-            fill =
-                difficulty.primary;
-
-
-            border =
-                difficulty.primary;
-
-
-            colour =
-                i === 0
-                    ? "#111111"
-                    : difficulty.background;
-
-        }
-
-
-        if (
-            !unlocked
-        ) {
-
-            fill =
-                "#141414";
-
-
-            border =
-                "#333333";
-
-
-            colour =
-                "#555555";
-
-        }
-
-
-        drawPanel(
-            WIDTH / 2 - 230,
-            148 +
-            i *
-            80,
-            460,
-            64,
-            fill,
-            border
-        );
-
-
-        drawText(
-            difficulty.name,
-            WIDTH / 2,
-            180 +
-            i *
-            80,
-            25,
-            colour
-        );
-
-
-        if (
-            !unlocked
-        ) {
-
-            drawText(
-                "LOCKED",
-                WIDTH / 2 + 140,
-                180 +
-                i *
-                80,
-                12,
-                "#555555"
-            );
-
-        }
-
-    }
-
-
-    drawText(
-        "Finish one difficulty to unlock the next",
-        WIDTH / 2,
-        430,
-        17,
-        "#888888"
-    );
-
-
-    drawText(
-        "Click a difficulty or use W / S / ↑ / ↓",
-        WIDTH / 2,
-        490,
-        14,
-        "#666666"
-    );
-
-
-    drawText(
-        "ESC BACK",
-        WIDTH / 2,
-        525,
-        13,
-        "#555555"
-    );
-
-}
-
-
-/* =========================================================
-   ROUND
-========================================================= */
-
-function drawRound() {
-
-    clearScreen(
-        "#101010"
-    );
-
-
-    const difficulty =
-        getDifficulty();
-
-
-    drawText(
-        "SELECT ROUND",
-        WIDTH / 2,
-        70,
-        44,
-        "#ffffff"
-    );
-
-
-    drawText(
-        difficulty.name,
-        WIDTH / 2,
-        112,
-        17,
-        difficulty.primary
-    );
-
-
-    drawText(
-        "TOKENS  " +
-        save.tokens,
-        WIDTH / 2,
-        142,
-        16,
-        "#ffffff"
-    );
-
-
-    for (
-        let i = 0;
-        i < 5;
-        i++
-    ) {
-
-        const cost =
-            getRoundCost(
-                save.difficulty,
-                i
-            );
-
-
-        const winnings =
-            getRoundWinning(
-                save.difficulty,
-                i
-            );
-
-
-        const affordable =
-            save.tokens >=
-            cost;
-
-
-        const selected =
-            roundSelection ===
-            i;
-
-
-        const y =
-            181 +
-            i *
-            62;
-
-
-        let fill =
-            affordable
-                ? "#181818"
-                : "#101010";
-
-
-        let border =
-            affordable
-                ? "#444444"
-                : "#252525";
-
-
-        let colour =
-            affordable
-                ? "#ffffff"
-                : "#555555";
-
-
-        if (
-            selected &&
-            affordable
-        ) {
-
-            fill =
-                difficulty.primary;
-
-
-            border =
-                difficulty.primary;
-
-
-            colour =
-                save.difficulty ===
-                0
-                    ? "#111111"
-                    : difficulty.background;
-
-        }
-
-
-        drawPanel(
-            WIDTH / 2 - 235,
-            y,
-            470,
-            48,
-            fill,
-            border
-        );
-
-
-        drawText(
-            "ROUND " +
-            (
-                i + 1
-            ) +
-            "    " +
-            cost +
-            " → " +
-            winnings +
-            " TOKENS",
-            WIDTH / 2,
-            y + 24,
-            18,
-            colour
-        );
-
-
-        drawText(
-            "FIRST TO " +
-            roundTargets[i],
-            WIDTH / 2 + 315,
-            y + 24,
-            11,
-            affordable
-                ? "#888888"
-                : "#444444"
-        );
-
-    }
-
-
-    drawText(
-        "ESC BACK",
-        WIDTH / 2,
-        555,
-        13,
-        "#555555"
-    );
-
-}
-
-
-/* =========================================================
-   GAME
-========================================================= */
-
-function drawGame() {
-
-    const difficulty =
-        getDifficulty();
-
-
-    clearScreen(
-        difficulty.background
-    );
-
-
-    drawText(
-        "ROUND " +
-        save.currentRound +
-        "/5",
-        WIDTH / 2,
-        25,
-        18,
-        difficulty.primary
-    );
-
+    return {
+      lines,
+      height:
+        lines.length *
+        lineHeight
+    };
+  }
+
+  function drawGame() {
+    clearCanvas();
 
     ctx.strokeStyle =
-        difficulty.secondary;
-
+      "#303640";
 
     ctx.lineWidth =
-        2;
+      2;
 
-
-    ctx.setLineDash([
-        12,
-        14
-    ]);
-
+    ctx.setLineDash(
+      [8,12]
+    );
 
     ctx.beginPath();
 
-
     ctx.moveTo(
-        WIDTH / 2,
-        0
+      canvas.width / 2,
+      0
     );
-
 
     ctx.lineTo(
-        WIDTH / 2,
-        HEIGHT
+      canvas.width / 2,
+      canvas.height
     );
-
 
     ctx.stroke();
 
-
-    ctx.setLineDash([]);
-
-
-    ctx.strokeStyle =
-        difficulty.border;
-
-
-    ctx.strokeRect(
-        0,
-        0,
-        WIDTH,
-        HEIGHT
+    ctx.setLineDash(
+      []
     );
-
-
-    const target =
-        roundTargets[
-            save.currentRound - 1
-        ];
-
-
-    drawText(
-        playerScore +
-        "/" +
-        target,
-        WIDTH / 2 - 90,
-        70,
-        40,
-        difficulty.primary
-    );
-
-
-    drawText(
-        aiScore +
-        "/" +
-        target,
-        WIDTH / 2 + 90,
-        70,
-        40,
-        difficulty.primary
-    );
-
 
     ctx.fillStyle =
-        difficulty.primary;
-
+      "#fff";
 
     ctx.fillRect(
-        PLAYER_X,
-        playerY,
-        PADDLE_WIDTH,
-        PADDLE_HEIGHT
+      PLAYER_X,
+      playerY,
+      PADDLE_W,
+      PADDLE_H
     );
 
-
     ctx.fillRect(
-        AI_X,
-        aiY,
-        PADDLE_WIDTH,
-        PADDLE_HEIGHT
+      AI_X,
+      aiY,
+      PADDLE_W,
+      PADDLE_H
     );
 
-
     ctx.fillRect(
-        ballX -
+      ball.x -
         BALL_SIZE / 2,
-        ballY -
+      ball.y -
         BALL_SIZE / 2,
-        BALL_SIZE,
-        BALL_SIZE
+      BALL_SIZE,
+      BALL_SIZE
     );
 
-
-    drawText(
-        "TOKENS " +
-        save.tokens,
-        20,
-        22,
-        15,
-        difficulty.primary,
-        "left"
+    text(
+      String(
+        playerScore
+      ),
+      420,
+      70,
+      48
     );
 
-
-    drawText(
-        "W / S or ↑ / ↓     SPACE PAUSE",
-        WIDTH / 2,
-        HEIGHT - 22,
-        13,
-        difficulty.muted
+    text(
+      String(
+        aiScore
+      ),
+      540,
+      70,
+      48
     );
 
+    text(
+      "ROUND " +
+        round +
+        "/5",
+      canvas.width / 2,
+      35,
+      18
+    );
 
-    if (
-        state ===
-        STATES.PAUSED
-    ) {
+    text(
+      playerScore +
+        " / " +
+        TARGETS[
+          round - 1
+        ],
+      410,
+      585,
+      16
+    );
+
+    text(
+      aiScore +
+        " / " +
+        TARGETS[
+          round - 1
+        ],
+      550,
+      585,
+      16
+    );
+
+    if (paused) {
+      ctx.fillStyle =
+        "rgba(0,0,0,.62)";
+
+      ctx.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      text(
+        "PAUSED",
+        canvas.width / 2,
+        285,
+        42
+      );
+
+      text(
+        "Press SPACE to continue",
+        canvas.width / 2,
+        325,
+        18
+      );
+    }
+  }
+
+  function drawMenu() {
+    clearCanvas();
+
+    const centerX =
+      canvas.width / 2;
+
+    text(
+      "PONG",
+      centerX,
+      70,
+      54
+    );
+
+    text(
+      "Select difficulty",
+      centerX,
+      104,
+      18
+    );
+
+    const statusTop =
+      125;
+
+    const status =
+      winner
+        ? wrappedTextLimited(
+            winner,
+            centerX,
+            statusTop,
+            14,
+            700,
+            18,
+            2
+          )
+        : {
+            height: 0
+          };
+
+    const buttonH =
+      48;
+
+    const buttonGap =
+      12;
+
+    const firstButtonY =
+      188;
+
+    DIFFICULTIES.forEach(
+      (
+        name,
+        index
+      ) => {
+        const y =
+          firstButtonY +
+          index *
+            (
+              buttonH +
+              buttonGap
+            );
+
+        const unlocked =
+          isDifficultyUnlocked(
+            index
+          );
+
+        const selected =
+          index ===
+          menuIndex;
 
         ctx.fillStyle =
-            "rgba(0,0,0,0.70)";
-
+          selected
+            ? "#fff"
+            : (
+                unlocked
+                  ? "#242a32"
+                  : "#1c2026"
+              );
 
         ctx.fillRect(
-            0,
-            0,
-            WIDTH,
-            HEIGHT
+          330,
+          y,
+          300,
+          buttonH
         );
 
+        ctx.fillStyle =
+          selected
+            ? "#11151a"
+            : (
+                unlocked
+                  ? "#fff"
+                  : "#777f89"
+              );
 
-        drawButton(
-            "RESUME",
-            WIDTH / 2 - 140,
-            255,
-            280,
-            90,
-            true
+        ctx.font =
+          "bold 20px Arial";
+
+        ctx.textAlign =
+          "center";
+
+        ctx.textBaseline =
+          "middle";
+
+        ctx.fillText(
+          unlocked
+            ? name
+            : name +
+              " — LOCKED",
+          centerX,
+          y +
+            buttonH / 2
         );
-
-    }
-
-}
-
-
-/* =========================================================
-   RESULT
-========================================================= */
-
-function drawResult() {
-
-    const difficulty =
-        getDifficulty();
-
-
-    clearScreen(
-        "#101010"
+      }
     );
 
-
-    const won =
-        matchResult ===
-        "WIN";
-
-
-    drawText(
-        won
-            ? "ROUND COMPLETE"
-            : "ROUND LOST",
-        WIDTH / 2,
-        115,
-        42,
-        won
-            ? difficulty.primary
-            : "#ffffff"
+    text(
+      "↑ / ↓ or W / S to select",
+      centerX,
+      388,
+      14
     );
 
-
-    const target =
-        roundTargets[
-            save.currentRound - 1
-        ];
-
-
-    drawText(
-        playerScore +
-        "/" +
-        target +
-        "  -  " +
-        aiScore +
-        "/" +
-        target,
-        WIDTH / 2,
-        180,
-        38,
-        "#ffffff"
+    text(
+      "ENTER to choose",
+      centerX,
+      412,
+      14
     );
 
+    text(
+      "Tokens: " +
+        tokens,
+      centerX,
+      446,
+      16
+    );
+  }
+
+  function drawResult() {
+    clearCanvas();
+
+    const centerX =
+      canvas.width / 2;
+
+    const result =
+      wrappedText(
+        winner,
+        centerX,
+        78,
+        27,
+        760,
+        34
+      );
+
+    let cursor =
+      78 +
+      result.height +
+      28;
 
     if (
-        won
+      winner.startsWith(
+        "You won Round"
+      )
     ) {
+      text(
+        "CONTINUE",
+        centerX,
+        cursor,
+        21
+      );
 
-        const winnings =
-            getRoundWinning(
-                save.difficulty,
-                save.currentRound - 1
-            );
+      text(
+        "ENTER = continue",
+        centerX,
+        cursor + 42,
+        16
+      );
 
-
-        drawText(
-            "+" +
-            winnings +
-            " TOKENS",
-            WIDTH / 2,
-            230,
-            20,
-            difficulty.primary
+      text(
+        "ESC = main menu",
+        centerX,
+        cursor + 68,
+        16
+      );
+    } else if (
+      winner.startsWith(
+        "Not enough"
+      )
+    ) {
+      const info =
+        wrappedText(
+          "Get Tokens below, then use the website to turn the Redemption Code into a Token Code.",
+          centerX,
+          cursor,
+          16,
+          700,
+          23
         );
 
+      cursor +=
+        info.height +
+        18;
+
+      text(
+        "ENTER = menu",
+        centerX,
+        cursor,
+        16
+      );
+    } else if (
+      winner.includes(
+        "completed all three"
+      )
+    ) {
+      text(
+        "You finished all three difficulties.",
+        centerX,
+        cursor,
+        19
+      );
+
+      text(
+        "ENTER = menu",
+        centerX,
+        cursor + 42,
+        16
+      );
+    } else if (
+      winner.includes(
+        "unlocked"
+      )
+    ) {
+      text(
+        "ENTER = play",
+        centerX,
+        cursor,
+        20
+      );
+
+      text(
+        "ESC = menu",
+        centerX,
+        cursor + 40,
+        16
+      );
+    } else {
+      text(
+        "ENTER = play again",
+        centerX,
+        cursor,
+        18
+      );
+
+      text(
+        "ESC = main menu",
+        centerX,
+        cursor + 34,
+        18
+      );
     }
 
+    text(
+      "Tokens: " +
+        tokens,
+      centerX,
+      555,
+      17
+    );
+  }
 
+  function draw() {
     if (
-        won &&
-        save.currentRound ===
-        5
+      screen ===
+      "menu"
     ) {
+      drawMenu();
+    } else if (
+      screen ===
+      "game"
+    ) {
+      drawGame();
+    } else {
+      drawResult();
+    }
+  }
 
+  window.addEventListener(
+    "keydown",
+    event => {
+      if (
+        [
+          "ArrowUp",
+          "ArrowDown",
+          "Space"
+        ].includes(
+          event.code
+        )
+      ) {
+        event.preventDefault();
+      }
+
+      if (
+        document.activeElement ===
+          codeInput ||
+        document.activeElement ===
+          generatedCode
+      ) {
+        return;
+      }
+
+      keys[event.key] =
+        true;
+
+      keys[event.code] =
+        true;
+
+      if (
+        screen ===
+        "menu"
+      ) {
         if (
-            save.difficulty <
-            2
+          event.key ===
+            "ArrowUp" ||
+          event.key.toLowerCase() ===
+            "w"
         ) {
-
-            drawText(
-                difficulties[
-                    save.difficulty + 1
-                ].name +
-                " UNLOCKED",
-                WIDTH / 2,
-                275,
-                20,
-                difficulties[
-                    save.difficulty + 1
-                ].primary
-            );
-
-        } else {
-
-            drawText(
-                "ALL DIFFICULTIES COMPLETE",
-                WIDTH / 2,
-                275,
-                18,
-                difficulty.primary
-            );
-
+          menuIndex =
+            (
+              menuIndex +
+              DIFFICULTIES.length -
+              1
+            ) %
+            DIFFICULTIES.length;
         }
 
+        if (
+          event.key ===
+            "ArrowDown" ||
+          event.key.toLowerCase() ===
+            "s"
+        ) {
+          menuIndex =
+            (
+              menuIndex +
+              1
+            ) %
+            DIFFICULTIES.length;
+        }
+
+        if (
+          event.key ===
+          "Enter"
+        ) {
+          beginDifficulty(
+            menuIndex
+          );
+        }
+      } else if (
+        screen ===
+        "game"
+      ) {
+        if (
+          event.code ===
+          "Space"
+        ) {
+          paused =
+            !paused;
+        }
+
+        if (
+          event.key ===
+          "Escape"
+        ) {
+          screen =
+            "menu";
+
+          paused =
+            false;
+        }
+      } else if (
+        screen ===
+        "result"
+      ) {
+        if (
+          event.key ===
+          "Enter"
+        ) {
+          if (
+            winner.startsWith(
+              "You won Round"
+            )
+          ) {
+            nextRound();
+          } else if (
+            winner.includes(
+              "unlocked"
+            )
+          ) {
+            beginDifficulty(
+              difficulty
+            );
+          } else {
+            screen =
+              "menu";
+          }
+        }
+
+        if (
+          event.key ===
+          "Escape"
+        ) {
+          screen =
+            "menu";
+        }
+      }
     }
-
-
-    drawButton(
-        won &&
-        save.currentRound <
-        5
-            ? "NEXT ROUND"
-            : "PLAY AGAIN",
-        WIDTH / 2 - 220,
-        338,
-        440,
-        54,
-        resultSelection ===
-            0
-    );
-
-
-    drawButton(
-        "MAIN MENU",
-        WIDTH / 2 - 220,
-        408,
-        440,
-        54,
-        resultSelection ===
-            1
-    );
-
-
-    drawText(
-        "Click an option or use W / S / ↑ / ↓",
-        WIDTH / 2,
-        510,
-        14,
-        "#666666"
-    );
-
-}
-
-
-/* =========================================================
-   TOKENS
-========================================================= */
-
-function drawTokens() {
-
-    clearScreen(
-        "#101010"
-    );
-
-
-    drawText(
-        "TOKENS",
-        WIDTH / 2,
-        100,
-        48,
-        "#ffffff"
-    );
-
-
-    drawText(
-        "CURRENT BALANCE: " +
-        save.tokens,
-        WIDTH / 2,
-        160,
-        22,
-        "#ffffff"
-    );
-
-
-    drawButton(
-        "REDEEM TOKENS",
-        WIDTH / 2 - 220,
-        265,
-        440,
-        65,
-        tokenSelection ===
-            0
-    );
-
-
-    drawButton(
-        "BACK",
-        WIDTH / 2 - 220,
-        340,
-        440,
-        65,
-        tokenSelection ===
-            1
-    );
-
-
-    drawText(
-        "Click an option or use W / S / ↑ / ↓",
-        WIDTH / 2,
-        525,
-        14,
-        "#666666"
-    );
-
-}
-
-
-/* =========================================================
-   REDEEM
-========================================================= */
-
-function drawRedeem() {
-
-    clearScreen(
-        "#101010"
-    );
-
-
-    drawText(
-        "REDEEM TOKENS",
-        WIDTH / 2,
-        50,
-        38,
-        "#ffffff"
-    );
-
-
-    drawText(
-        "TOKENS  " +
-        save.tokens,
-        WIDTH / 2,
-        88,
-        17,
-        "#ffffff"
-    );
-
-
-    drawText(
-        "REDEMPTION CODE",
-        WIDTH / 2,
-        125,
-        16,
-        "#aaaaaa"
-    );
-
-
-    drawPanel(
-        45,
-        150,
-        780,
-        75,
-        "#181818",
-        "#555555"
-    );
-
-
-    ctx.fillStyle =
-        codeAGenerating
-            ? "#777777"
-            : "#ffffff";
-
-
-    ctx.font =
-        "10px Consolas, monospace";
-
-
-    ctx.textAlign =
-        "center";
-
-
-    ctx.textBaseline =
-        "middle";
-
-
-    ctx.fillText(
-        codeAGenerating
-            ? "GENERATING..."
-            : currentCodeA ||
-              "NO CODE",
-        435,
-        187
-    );
-
-
-    drawPanel(
-        835,
-        150,
-        80,
-        75,
-        "#181818",
-        "#555555"
-    );
-
-
-    ctx.fillStyle =
-        "#ffffff";
-
-
-    ctx.font =
-        "22px Arial";
-
-
-    ctx.fillText(
-        "📋",
-        875,
-        187
-    );
-
-
-    drawText(
-        "TOKEN CODE",
-        WIDTH / 2,
-        255,
-        16,
-        "#aaaaaa"
-    );
-
-
-    drawText(
-        "Click the box to type or paste",
-        WIDTH / 2,
-        275,
-        12,
-        "#666666"
-    );
-
-
-    drawText(
-        "ATTEMPTS: " +
-        retryCount +
-        " / " +
-        MAX_RETRIES,
-        WIDTH / 2,
-        385,
-        14,
-        "#666666"
-    );
-
-
-    drawButton(
-        "COPY",
-        45,
-        405,
-        280,
-        50,
-        redeemSelection ===
-            0
-    );
-
-
-    drawButton(
-        "NEW CODE",
-        340,
-        405,
-        280,
-        50,
-        redeemSelection ===
-            1
-    );
-
-
-    drawButton(
-        "REDEEM",
-        635,
-        405,
-        280,
-        50,
-        redeemSelection ===
-            2
-    );
-
-
-    drawButton(
-        "BACK",
-        WIDTH / 2 - 170,
-        500,
-        340,
-        48,
-        redeemSelection ===
-            3
-    );
-
-
-    if (
-        redemptionMessage
-    ) {
-
-        drawText(
-            redemptionMessage,
-            WIDTH / 2,
-            565,
-            11,
-            getMessageColour()
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   COOLDOWN
-========================================================= */
-
-function drawCooldown() {
-
-    clearScreen(
-        "#101010"
-    );
-
-
-    drawText(
-        "REDEMPTION COOLDOWN",
-        WIDTH / 2,
-        145,
-        38,
-        "#ffffff"
-    );
-
-
-    const total =
-        Math.ceil(
-            cooldownRemaining
-        );
-
-
-    const minutes =
-        Math.floor(
-            total /
-            60
-        );
-
-
-    const seconds =
-        total %
-        60;
-
-
-    drawText(
-        String(minutes)
-            .padStart(
-                2,
-                "0"
-            ) +
-        ":" +
-        String(seconds)
-            .padStart(
-                2,
-                "0"
-            ),
-        WIDTH / 2,
-        260,
-        64,
-        "#ffffff"
-    );
-
-
-    drawText(
-        "3 new attempts will be available",
-        WIDTH / 2,
-        345,
-        18,
-        "#888888"
-    );
-
-
-    drawText(
-        "when the cooldown finishes.",
-        WIDTH / 2,
-        380,
-        18,
-        "#888888"
-    );
-
-
-    drawButton(
-        "BACK",
-        WIDTH / 2 - 170,
-        450,
-        340,
-        50,
-        false
-    );
-
-}
-
-
-/* =========================================================
-   DRAW DISPATCH
-========================================================= */
-
-function draw() {
-
-    if (
-        state === STATES.MENU
-    ) {
-
-        drawMenu();
-
+  );
+
+  window.addEventListener(
+    "keyup",
+    event => {
+      if (
+        document.activeElement ===
+          codeInput ||
+        document.activeElement ===
+          generatedCode
+      ) {
         return;
+      }
 
+      keys[event.key] =
+        false;
+
+      keys[event.code] =
+        false;
     }
+  );
 
-
-    if (
-        state === STATES.DIFFICULTY
-    ) {
-
-        drawDifficulty();
-
-        return;
-
-    }
-
-
-    if (
-        state === STATES.ROUND
-    ) {
-
-        drawRound();
-
-        return;
-
-    }
-
-
-    if (
-        state === STATES.PLAYING ||
-        state === STATES.PAUSED
-    ) {
-
-        drawGame();
-
-        return;
-
-    }
-
-
-    if (
-        state === STATES.RESULT
-    ) {
-
-        drawResult();
-
-        return;
-
-    }
-
-
-    if (
-        state === STATES.TOKENS
-    ) {
-
-        drawTokens();
-
-        return;
-
-    }
-
-
-    if (
-        state === STATES.REDEEM
-    ) {
-
-        showRedeemControls();
-
-        drawRedeem();
-
-        return;
-
-    }
-
-
-    if (
-        state === STATES.COOLDOWN
-    ) {
-
-        hideRedeemControls();
-
-        drawCooldown();
-
-    }
-
-}
-
-
-/* =========================================================
-   POINTER
-========================================================= */
-
-function getPointerPosition(
-    event
-) {
-
+  function updateTouchDirection(
+    clientY
+  ) {
     const rect =
-        canvas.getBoundingClientRect();
+      canvas.getBoundingClientRect();
 
+    const localY =
+      clientY -
+      rect.top;
 
-    return {
+    touchDirection =
+      localY <
+      rect.height / 2
+        ? -1
+        : 1;
+  }
 
-        x:
-            (
-                event.clientX -
-                rect.left
-            ) *
-            WIDTH /
-            rect.width,
-
-        y:
-            (
-                event.clientY -
-                rect.top
-            ) *
-            HEIGHT /
-            rect.height
-
-    };
-
-}
-
-
-function hit(
-    x,
-    y,
-    width,
-    height,
-    mouseX,
-    mouseY
-) {
-
-    return (
-
-        mouseX >= x &&
-        mouseX <=
-            x + width &&
-        mouseY >= y &&
-        mouseY <=
-            y + height
-
-    );
-
-}
-
-
-canvas.addEventListener(
+  canvas.addEventListener(
     "pointerdown",
-    function(event) {
+    event => {
+      if (
+        event.pointerType ===
+          "touch" ||
+        event.pointerType ===
+          "pen"
+      ) {
+        event.preventDefault();
 
-        const point =
-            getPointerPosition(
-                event
-            );
-
-
-        handleCanvasClick(
-            point.x,
-            point.y
+        updateTouchDirection(
+          event.clientY
         );
 
+        try {
+          canvas.setPointerCapture(
+            event.pointerId
+          );
+        } catch (_) {}
+      }
     }
-);
-
-
-/* =========================================================
-   CANVAS CLICK HANDLER
-========================================================= */
-
-function handleCanvasClick(
-    x,
-    y
-) {
-
-    if (
-        state === STATES.MENU
-    ) {
-
-        if (
-            hit(
-                WIDTH / 2 - 220,
-                255,
-                440,
-                65,
-                x,
-                y
-            )
-        ) {
-
-            menuSelection =
-                0;
-
-
-            activateSelection();
-
-
-            return;
-
-        }
-
-
-        if (
-            hit(
-                WIDTH / 2 - 220,
-                330,
-                440,
-                65,
-                x,
-                y
-            )
-        ) {
-
-            menuSelection =
-                1;
-
-
-            activateSelection();
-
-
-            return;
-
-        }
-
-    }
-
-
-    if (
-        state === STATES.DIFFICULTY
-    ) {
-
-        for (
-            let i = 0;
-            i < 3;
-            i++
-        ) {
-
-            const top =
-                148 +
-                i *
-                80;
-
-
-            if (
-                hit(
-                    WIDTH / 2 - 230,
-                    top,
-                    460,
-                    64,
-                    x,
-                    y
-                )
-            ) {
-
-                if (
-                    i <=
-                    save.unlockedDifficulty
-                ) {
-
-                    difficultySelection =
-                        i;
-
-
-                    activateSelection();
-
-                }
-
-                return;
-
-            }
-
-        }
-
-    }
-
-
-    if (
-        state === STATES.ROUND
-    ) {
-
-        for (
-            let i = 0;
-            i < 5;
-            i++
-        ) {
-
-            const top =
-                181 +
-                i *
-                62;
-
-
-            if (
-                hit(
-                    WIDTH / 2 - 235,
-                    top,
-                    470,
-                    48,
-                    x,
-                    y
-                )
-            ) {
-
-                roundSelection =
-                    i;
-
-
-                activateSelection();
-
-
-                return;
-
-            }
-
-        }
-
-    }
-
-
-    if (
-        state === STATES.RESULT
-    ) {
-
-        if (
-            hit(
-                WIDTH / 2 - 220,
-                338,
-                440,
-                54,
-                x,
-                y
-            )
-        ) {
-
-            resultSelection =
-                0;
-
-
-            activateSelection();
-
-
-            return;
-
-        }
-
-
-        if (
-            hit(
-                WIDTH / 2 - 220,
-                408,
-                440,
-                54,
-                x,
-                y
-            )
-        ) {
-
-            resultSelection =
-                1;
-
-
-            activateSelection();
-
-
-            return;
-
-        }
-
-    }
-
-
-    if (
-        state === STATES.TOKENS
-    ) {
-
-        if (
-            hit(
-                WIDTH / 2 - 220,
-                265,
-                440,
-                65,
-                x,
-                y
-            )
-        ) {
-
-            tokenSelection =
-                0;
-
-
-            activateSelection();
-
-
-            return;
-
-        }
-
-
-        if (
-            hit(
-                WIDTH / 2 - 220,
-                340,
-                440,
-                65,
-                x,
-                y
-            )
-        ) {
-
-            tokenSelection =
-                1;
-
-
-            activateSelection();
-
-
-            return;
-
-        }
-
-    }
-
-
-    if (
-        state === STATES.REDEEM
-    ) {
-
-        /*
-           Click the Token Code box.
-        */
-
-        if (
-            hit(
-                45,
-                280,
-                870,
-                100,
-                x,
-                y
-            )
-        ) {
-
-            tokenInput.focus();
-
-            return;
-
-        }
-
-
-        if (
-            hit(
-                45,
-                405,
-                280,
-                50,
-                x,
-                y
-            )
-        ) {
-
-            redeemSelection =
-                0;
-
-
-            copyRedemptionCode();
-
-
-            return;
-
-        }
-
-
-        if (
-            hit(
-                340,
-                405,
-                280,
-                50,
-                x,
-                y
-            )
-        ) {
-
-            redeemSelection =
-                1;
-
-
-            requestNewCode();
-
-
-            return;
-
-        }
-
-
-        if (
-            hit(
-                635,
-                405,
-                280,
-                50,
-                x,
-                y
-            )
-        ) {
-
-            redeemSelection =
-                2;
-
-
-            redeemTokenCode();
-
-
-            return;
-
-        }
-
-
-        if (
-            hit(
-                WIDTH / 2 - 170,
-                500,
-                340,
-                48,
-                x,
-                y
-            )
-        ) {
-
-            redeemSelection =
-                3;
-
-
-            state =
-                STATES.TOKENS;
-
-
-            hideRedeemControls();
-
-
-            return;
-
-        }
-
-    }
-
-
-    if (
-        state === STATES.PAUSED
-    ) {
-
-        if (
-            hit(
-                WIDTH / 2 - 140,
-                255,
-                280,
-                90,
-                x,
-                y
-            )
-        ) {
-
-            paused =
-                false;
-
-
-            state =
-                STATES.PLAYING;
-
-        }
-
-    }
-
-
-    if (
-        state === STATES.COOLDOWN
-    ) {
-
-        if (
-            hit(
-                WIDTH / 2 - 170,
-                450,
-                340,
-                50,
-                x,
-                y
-            )
-        ) {
-
-            state =
-                STATES.TOKENS;
-
-        }
-
-    }
-
-}
-
-
-/* =========================================================
-   KEYBOARD NAVIGATION
-========================================================= */
-
-document.addEventListener(
-    "keydown",
-    function(event) {
-
-        /*
-           Don't navigate menus while typing.
-        */
-
-        if (
-            document.activeElement ===
-            tokenInput
-        ) {
-
-            return;
-
-        }
-
-
-        if (
-            event.key ===
-            "Enter"
-        ) {
-
-            event.preventDefault();
-
-            activateSelection();
-
-
-            return;
-
-        }
-
-
-        const key =
-            event.key;
-
-
-        if (
-            state === STATES.MENU
-        ) {
-
-            if (
-                key === "ArrowUp" ||
-                key === "w" ||
-                key === "W"
-            ) {
-
-                menuMove(-1);
-
-            }
-
-
-            if (
-                key === "ArrowDown" ||
-                key === "s" ||
-                key === "S"
-            ) {
-
-                menuMove(1);
-
-            }
-
-
-            return;
-
-        }
-
-
-        if (
-            state === STATES.DIFFICULTY
-        ) {
-
-            if (
-                key === "ArrowUp" ||
-                key === "w" ||
-                key === "W"
-            ) {
-
-                difficultyMove(-1);
-
-            }
-
-
-            if (
-                key === "ArrowDown" ||
-                key === "s" ||
-                key === "S"
-            ) {
-
-                difficultyMove(1);
-
-            }
-
-
-            return;
-
-        }
-
-
-        if (
-            state === STATES.ROUND
-        ) {
-
-            if (
-                key === "ArrowUp" ||
-                key === "w" ||
-                key === "W"
-            ) {
-
-                roundMove(-1);
-
-            }
-
-
-            if (
-                key === "ArrowDown" ||
-                key === "s" ||
-                key === "S"
-            ) {
-
-                roundMove(1);
-
-            }
-
-
-            return;
-
-        }
-
-
-        if (
-            state === STATES.RESULT
-        ) {
-
-            if (
-                key === "ArrowUp" ||
-                key === "w" ||
-                key === "W"
-            ) {
-
-                resultMove(-1);
-
-            }
-
-
-            if (
-                key === "ArrowDown" ||
-                key === "s" ||
-                key === "S"
-            ) {
-
-                resultMove(1);
-
-            }
-
-
-            return;
-
-        }
-
-
-        if (
-            state === STATES.TOKENS
-        ) {
-
-            if (
-                key === "ArrowUp" ||
-                key === "w" ||
-                key === "W"
-            ) {
-
-                tokenMove(-1);
-
-            }
-
-
-            if (
-                key === "ArrowDown" ||
-                key === "s" ||
-                key === "S"
-            ) {
-
-                tokenMove(1);
-
-            }
-
-
-            return;
-
-        }
-
-
-        if (
-            state === STATES.REDEEM
-        ) {
-
-            if (
-                key === "ArrowUp" ||
-                key === "w" ||
-                key === "W"
-            ) {
-
-                redeemMove(-1);
-
-            }
-
-
-            if (
-                key === "ArrowDown" ||
-                key === "s" ||
-                key === "S"
-            ) {
-
-                redeemMove(1);
-
-            }
-
-        }
-
-    }
-);
-
-
-/* =========================================================
-   ESCAPE
-========================================================= */
-
-document.addEventListener(
-    "keydown",
-    function(event) {
-
-        if (
-            event.key !==
-            "Escape"
-        ) {
-
-            return;
-
-        }
-
-
-        if (
-            state ===
-            STATES.PLAYING
-        ) {
-
-            paused =
-                true;
-
-
-            state =
-                STATES.PAUSED;
-
-
-            return;
-
-        }
-
-
-        if (
-            state ===
-            STATES.PAUSED
-        ) {
-
-            paused =
-                false;
-
-
-            state =
-                STATES.PLAYING;
-
-
-            return;
-
-        }
-
-
-        if (
-            state === STATES.DIFFICULTY ||
-            state === STATES.TOKENS
-        ) {
-
-            state =
-                STATES.MENU;
-
-
-            return;
-
-        }
-
-
-        if (
-            state === STATES.ROUND
-        ) {
-
-            state =
-                STATES.DIFFICULTY;
-
-
-            return;
-
-        }
-
-
-        if (
-            state === STATES.RESULT
-        ) {
-
-            state =
-                STATES.ROUND;
-
-
-            return;
-
-        }
-
-
-        if (
-            state === STATES.REDEEM
-        ) {
-
-            state =
-                STATES.TOKENS;
-
-
-            hideRedeemControls();
-
-
-            return;
-
-        }
-
-
-        if (
-            state === STATES.COOLDOWN
-        ) {
-
-            state =
-                STATES.TOKENS;
-
-        }
-
-    }
-);
-
-
-/* =========================================================
-   SPACE
-========================================================= */
-
-document.addEventListener(
-    "keydown",
-    function(event) {
-
-        if (
-            event.key !==
-            " " &&
-            event.code !==
-            "Space"
-        ) {
-
-            return;
-
-        }
-
-
-        if (
-            document.activeElement ===
-            tokenInput
-        ) {
-
-            return;
-
-        }
-
-
-        if (
-            state ===
-            STATES.PLAYING
-        ) {
-
-            event.preventDefault();
-
-
-            paused =
-                true;
-
-
-            state =
-                STATES.PAUSED;
-
-
-        } else if (
-            state ===
-            STATES.PAUSED
-        ) {
-
-            event.preventDefault();
-
-
-            paused =
-                false;
-
-
-            state =
-                STATES.PLAYING;
-
-        }
-
-    }
-);
-
-
-/* =========================================================
-   MAIN UPDATE
-========================================================= */
-
-function update(
-    dt
-) {
-
-    if (
-        state ===
-        STATES.PLAYING
-    ) {
-
-        updatePlayer(
-            dt
+  );
+
+  canvas.addEventListener(
+    "pointermove",
+    event => {
+      if (
+        event.pointerType ===
+          "touch" ||
+        event.pointerType ===
+          "pen"
+      ) {
+        event.preventDefault();
+
+        updateTouchDirection(
+          event.clientY
         );
-
-
-        updateAI(
-            dt
-        );
-
-
-        updateBall(
-            dt
-        );
-
+      }
     }
+  );
 
-}
-
-
-/* =========================================================
-   MAIN LOOP
-========================================================= */
-
-let previousTime =
-    performance.now();
-
-
-function loop(
-    now
-) {
-
-    let dt =
-        (
-            now -
-            previousTime
-        ) /
-        1000;
-
-
-    previousTime =
-        now;
-
-
-    if (
-        dt > 0.033
-    ) {
-
-        dt =
-            0.033;
-
+  canvas.addEventListener(
+    "pointerup",
+    event => {
+      if (
+        event.pointerType ===
+          "touch" ||
+        event.pointerType ===
+          "pen"
+      ) {
+        touchDirection =
+          0;
+      }
     }
+  );
 
+  canvas.addEventListener(
+    "pointercancel",
+    () =>
+      touchDirection = 0
+  );
 
-    update(
-        dt
-    );
+  function loop(now) {
+    const dt =
+      Math.min(
+        (now - lastTime) /
+          1000,
+        0.033
+      );
 
+    lastTime =
+      now;
 
-    updateCooldown(
-        now
-    );
-
-
+    update(dt);
     draw();
 
-
-    requestAnimationFrame(
-        loop
+    window.requestAnimationFrame(
+      loop
     );
+  }
 
-}
+  draw();
 
-
-/* =========================================================
-   INITIALISE
-========================================================= */
-
-createCodeA();
-
-hideRedeemControls();
-
-draw();
-
-requestAnimationFrame(
+  window.requestAnimationFrame(
     loop
-);
-
+  );
+})();
 </script>
-
 </body>
 </html>
